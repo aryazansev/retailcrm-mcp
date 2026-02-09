@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "retailcrm": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && export RETAILCRM_URL=\"https://your-account.retailcrm.ru\" && export RETAILCRM_API_KEY=\"your_api_key_here\" && node ~/retailcrm-mcp/build/index.js"
+      ]
+    }
+  }
+}
