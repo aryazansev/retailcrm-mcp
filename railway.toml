@@ -3,7 +3,7 @@
   builder = "dockerfile"
 
 [deploy]
-  startCommand = "node build/server.js"
+  startCommand = "node build/test-server.js"
   healthcheckPath = "/health"
   restartPolicyType = "ON_FAILURE"
 

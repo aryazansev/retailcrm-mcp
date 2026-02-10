@@ -20,16 +20,85 @@ app.get('/', (req, res) => {
   });
 });
 
-// Manifest endpoint (статический)
+// Manifest endpoint (полный для AI Studio)
 app.get('/manifest', (req, res) => {
   res.json({
     name: "retailcrm-mcp",
     version: "1.0.0",
+    description: "RetailCRM integration for AI assistants - connects to your RetailCRM instance",
+    author: "aryazansev",
+    homepage: "https://github.com/aryazansev/retailcrm-mcp",
     transport: "http",
     endpoints: {
-      health: "/health",
-      manifest: "/manifest"
+      mcp: `/mcp`,
+      health: `/health`,
+      manifest: `/manifest`
+    },
+    capabilities: {
+      tools: [
+        "get_orders",
+        "get_order", 
+        "create_order",
+        "update_order",
+        "get_customers",
+        "get_customer",
+        "create_customer",
+        "update_customer",
+        "get_products",
+        "get_product",
+        "get_statistics",
+        "get_tasks",
+        "create_task",
+        "get_order_history",
+        "get_reference_data"
+      ]
+    },
+    setup: {
+      required_env: ["RETAILCRM_URL", "RETAILCRM_API_KEY"],
+      optional_env: ["PORT"]
     }
+  });
+});
+
+// Tools endpoint
+app.get('/tools', (req, res) => {
+  res.json({
+    tools: [
+      {
+        name: "get_orders",
+        description: "Get list of orders with filtering options",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: { type: "number", description: "Maximum number of orders to return" },
+            page: { type: "number", description: "Page number for pagination" },
+            status: { type: "string", description: "Filter by order status" }
+          }
+        }
+      },
+      {
+        name: "get_order",
+        description: "Get detailed information about a specific order",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "string", description: "Order ID" }
+          },
+          required: ["id"]
+        }
+      },
+      {
+        name: "get_customers",
+        description: "Get list of customers",
+        inputSchema: {
+          type: "object",
+          properties: {
+            limit: { type: "number", description: "Maximum number of customers to return" },
+            page: { type: "number", description: "Page number for pagination" }
+          }
+        }
+      }
+    ]
   });
 });
 
