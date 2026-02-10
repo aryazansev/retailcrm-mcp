@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = Number(process.env.PORT) || 3002;
 
 // Health check - самый простой
 app.get('/health', (req, res) => {
@@ -52,6 +52,6 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
 });
 
-app.on('error', (error) => {
-  console.error('Server Error:', error);
-});
+// app.on('error', (error) => {
+//   console.error('Server Error:', error);
+// });
