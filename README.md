@@ -37,6 +37,7 @@ mkdir -p ~/.retailcrm-mcp
 cat > ~/.retailcrm-mcp/.env << 'EOF'
 RETAILCRM_URL=https://your-account.retailcrm.ru
 RETAILCRM_API_KEY=your_api_key_here
+MCP_PORT=3002
 EOF
 ```
 
@@ -45,9 +46,12 @@ EOF
 ```env
 RETAILCRM_URL=https://your-account.retailcrm.ru
 RETAILCRM_API_KEY=your_api_key_here
+MCP_PORT=3002
 ```
 
-### 3. Настройка Claude Desktop
+### 3. Настройка (2 варианта)
+
+#### Вариант A: Claude Desktop (локально)
 
 Откройте файл конфигурации Claude Desktop:
 
@@ -73,20 +77,37 @@ RETAILCRM_API_KEY=your_api_key_here
 }
 ```
 
-Или если установлен локально:
+#### Вариант B: Внешний HTTP сервер (для AI Studio и других инструментов)
 
-```json
-{
-  "mcpServers": {
-    "retailcrm": {
-      "command": "bash",
-      "args": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\" && export RETAILCRM_URL=\"https://your-account.retailcrm.ru\" && export RETAILCRM_API_KEY=\"your_api_key\" && node /path/to/retailcrm-mcp/build/index.js"]
-    }
-  }
-}
+**Запуск HTTP сервера:**
+
+```bash
+npm run server
 ```
 
-### 4. Перезапустите Claude Desktop
+Сервер будет доступен на:
+- Health: http://localhost:3002/health
+- Manifest: http://localhost:3002/manifest  
+- Tools: http://localhost:3002/tools
+
+**Для AI Studio:**
+1. Запустите сервер: `npm run server`
+2. В AI Studio используйте URL: `http://localhost:3002/manifest`
+3. AI Studio автоматически обнаружит все доступные инструменты
+
+**Для других HTTP клиентов:**
+```bash
+# Получить список инструментов
+curl http://localhost:3002/tools
+
+# Проверить статус сервера
+curl http://localhost:3002/health
+
+# Получить манифест
+curl http://localhost:3002/manifest
+```
+
+### 4. Перезапустите Claude Desktop (если используете вариант A)
 
 Полностью закройте и откройте заново Claude Desktop.
 
@@ -110,10 +131,22 @@ RETAILCRM_API_KEY=your_api_key_here
 ### Клиенты
 - `get_customers` - Получить список клиентов
 - `get_customer` - Получить информацию о клиенте по ID
+- `create_customer` - Создать нового клиента
+- `update_customer` - Обновить данные клиента
 
 ### Товары
 - `get_products` - Получить список товаров
 - `get_product` - Получить информацию о товаре по ID
+
+### Справочники и статистика
+- `get_statistics` - Получить статистику по заказам/клиентам
+- `get_order_statuses` - Получить статусы заказов
+- `get_delivery_types` - Получить типы доставки
+- `get_payment_types` - Получить типы оплат
+- `get_sites` - Получить сайты
+- `get_order_history` - Получить историю изменений заказа
+- `get_tasks` - Получить список задач
+- `create_task` - Создать задачу
 
 ## 🔧 Разработка
 
@@ -126,13 +159,29 @@ npm run build
 ### Запуск в режиме разработки
 
 ```bash
+# Для Claude Desktop (stdio)
 npm run dev
+
+# Для внешнего HTTP сервера (AI Studio)
+npm run server
 ```
 
 ### Тестирование через MCP Inspector
 
 ```bash
 npx @modelcontextprotocol/inspector node build/index.js
+```
+
+### Тестирование HTTP сервера
+
+```bash
+# Запустить сервер
+npm run server
+
+# Проверить эндпоинты в другой терминал
+curl http://localhost:3002/health
+curl http://localhost:3002/manifest
+curl http://localhost:3002/tools
 ```
 
 ## 📝 Требования

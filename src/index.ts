@@ -401,11 +401,19 @@ server.tool(
   }
 );
 
-// Запуск сервера
+// Export function to create server (for HTTP usage)
+export async function createServer() {
+  return server;
+}
+
+// Запуск сервера (для stdio)
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("RetailCRM MCP Server running on stdio");
 }
 
-main().catch(console.error);
+// Run as stdio server if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(console.error);
+}
