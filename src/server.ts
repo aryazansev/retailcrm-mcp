@@ -3,7 +3,7 @@ import cors from 'cors';
 import { createServer } from './index.js';
 
 const app = express();
-const PORT = process.env.MCP_PORT || 3002;
+const PORT = Number(process.env.PORT) || Number(process.env.MCP_PORT) || 3002;
 
 // Health check before anything else (no dependencies)
 app.get('/health', (req, res) => {

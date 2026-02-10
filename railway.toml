@@ -3,10 +3,9 @@
   builder = "dockerfile"
 
 [deploy]
-  startCommand = "node build/test-server.js"
+  startCommand = "node build/server.js"
   healthcheckPath = "/health"
   restartPolicyType = "ON_FAILURE"
 
 [env]
-  PORT = "3002"
   NODE_ENV = "production"
