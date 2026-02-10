@@ -5,6 +5,23 @@ import { createServer } from './index.js';
 const app = express();
 const PORT = process.env.MCP_PORT || 3002;
 
+// Health check before anything else (no dependencies)
+app.get('/health', (req, res) => {
+  try {
+    res.status(200).json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      port: process.env.MCP_PORT || 3002
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ status: 'error', error: 'Health check failed' });
+  }
+});
+
 // Enable CORS for AI Studio and other clients
 app.use(cors({
   origin: [
@@ -35,16 +52,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+
 
 // MCP Server manifest endpoint for discovery
 app.get('/manifest', (req, res) => {
@@ -90,6 +98,11 @@ app.get('/manifest', (req, res) => {
 async function startServer() {
   try {
     console.log('🚀 Starting RetailCRM MCP Server...');
+    console.log('📍 Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      PORT: process.env.MCP_PORT || 3002,
+      RETAILCRM_URL: process.env.RETAILCRM_URL ? '✅ Set' : '❌ Missing'
+    });
     
     // Create MCP server instance
     const mcpServer = await createServer();
@@ -162,7 +175,7 @@ async function startServer() {
     });
 
     // Start HTTP server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`✅ RetailCRM MCP Server running on HTTP port ${PORT}`);
       console.log(`📋 Manifest: http://localhost:${PORT}/manifest`);
       console.log(`🔧 Tools: http://localhost:${PORT}/tools`);
@@ -175,8 +188,17 @@ async function startServer() {
       console.log('🌐 Repository: https://github.com/aryazansev/retailcrm-mcp');
     });
 
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      process.exit(1);
+    });
+
+    console.log('🏥 Health check ready on /health');
+
   } catch (error) {
     console.error('❌ Failed to start server:', error);
+    console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
     process.exit(1);
   }
 }
