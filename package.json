@@ -19,7 +19,7 @@
     "dev": "tsx src/index.ts",
     "server": "tsx src/server.ts",
     "server:prod": "node build/server.js",
-    "prepare": "npm run build"
+
   },
   "keywords": [
     "mcp",
