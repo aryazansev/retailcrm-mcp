@@ -4,14 +4,14 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files and TypeScript config
+COPY package*.json tsconfig.json ./
 
 # Install all dependencies (including dev for build)
 RUN npm ci && npm cache clean --force
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
 
 # Build the project
 RUN npm run build

@@ -53,7 +53,7 @@ README.md
 LICENSE
 *.md
 
-# Config files
+# Config files (exclude from docker image but keep for deployment)
 claude_desktop_config.example.json
 docker-compose.yml
 Dockerfile
