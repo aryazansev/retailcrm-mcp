@@ -171,4 +171,56 @@ export class RetailCRMClient {
   async getSites(): Promise<any> {
     return this.request("GET", "/reference/sites");
   }
+
+  // Дополнительные данные заказа
+  async getOrderHistory(id: number): Promise<any> {
+    return this.request("GET", `/orders/${id}/changes`);
+  }
+
+  async getOrderFiles(id: number): Promise<any> {
+    return this.request("GET", `/orders/${id}/files`);
+  }
+
+  async getOrderComments(id: number): Promise<any> {
+    return this.request("GET", `/orders/${id}/notes`);
+  }
+
+  // Статистика и отчеты
+  async getOrdersStatistics(filters?: Record<string, any>): Promise<any> {
+    const params: Record<string, any> = {};
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        params[key] = value;
+      });
+    }
+    return this.request("GET", "/statistic/orders", params);
+  }
+
+  async getCustomersStatistics(): Promise<any> {
+    return this.request("GET", "/statistic/customers");
+  }
+
+  // Задачи
+  async getTasks(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/tasks", params);
+  }
+
+  async createTask(task: Record<string, any>): Promise<any> {
+    return this.request("POST", "/tasks/create", undefined, { task });
+  }
 }

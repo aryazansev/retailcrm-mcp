@@ -203,6 +203,204 @@ server.tool(
   }
 );
 
+// Инструмент: получить справочники
+server.tool(
+  "get_order_statuses",
+  {},
+  async () => {
+    const result = await client.getOrderStatuses();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "get_delivery_types",
+  {},
+  async () => {
+    const result = await client.getDeliveryTypes();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "get_payment_types",
+  {},
+  async () => {
+    const result = await client.getPaymentTypes();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+server.tool(
+  "get_sites",
+  {},
+  async () => {
+    const result = await client.getSites();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить историю заказа
+server.tool(
+  "get_order_history",
+  {
+    id: z.number().describe("ID заказа"),
+  },
+  async ({ id }) => {
+    const result = await client.getOrderHistory(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить файлы заказа
+server.tool(
+  "get_order_files",
+  {
+    id: z.number().describe("ID заказа"),
+  },
+  async ({ id }) => {
+    const result = await client.getOrderFiles(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить комментарии заказа
+server.tool(
+  "get_order_comments",
+  {
+    id: z.number().describe("ID заказа"),
+  },
+  async ({ id }) => {
+    const result = await client.getOrderComments(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить статистику заказов
+server.tool(
+  "get_orders_statistics",
+  {
+    filters: z.record(z.any()).optional().describe("Фильтры для статистики"),
+  },
+  async ({ filters }) => {
+    const result = await client.getOrdersStatistics(filters);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить статистику клиентов
+server.tool(
+  "get_customers_statistics",
+  {},
+  async () => {
+    const result = await client.getCustomersStatistics();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить список задач
+server.tool(
+  "get_tasks",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getTasks({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: создать задачу
+server.tool(
+  "create_task",
+  {
+    task: z.record(z.any()).describe("Данные задачи"),
+  },
+  async ({ task }) => {
+    const result = await client.createTask(task);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
 // Запуск сервера
 async function main() {
   const transport = new StdioServerTransport();
