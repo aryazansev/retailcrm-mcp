@@ -5,6 +5,13 @@
 [start]
   cmd = "node build/server.js"
 
+# Health check configuration
+[healthcheck]
+  path = "/health"
+  interval = 10
+  timeout = 5
+  retries = 3
+
 [variables]
   NODE_ENV = "production"
   MCP_PORT = "3002"

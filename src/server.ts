@@ -21,12 +21,28 @@ app.use(cors({
 // Parse JSON bodies
 app.use(express.json());
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: "RetailCRM MCP Server",
+    status: "running",
+    endpoints: {
+      health: "/health",
+      manifest: "/manifest",
+      tools: "/tools",
+      mcp: "/mcp"
+    }
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 

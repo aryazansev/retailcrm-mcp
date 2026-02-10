@@ -24,6 +24,10 @@
   [services.health_checks]
     path = "/health"
     port = 3002
+    grace_period_seconds = 30
+    interval_seconds = 10
+    timeout_seconds = 5
+    protocol = "http"
     
   [services.ports]
     port = 3002
