@@ -85,6 +85,25 @@ server.tool(
   }
 );
 
+// Инструмент: получить заказ по номеру
+server.tool(
+  "get_order_by_number",
+  {
+    number: z.string().describe("Номер заказа"),
+  },
+  async ({ number }) => {
+    const result = await client.getOrderByNumber(number);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
 // Инструмент: создать заказ
 server.tool(
   "create_order",

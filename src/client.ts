@@ -70,7 +70,29 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number): Promise<any> {
-    return this.request("GET", `/orders/${id}`);
+    // Получаем заказ из списка с фильтром по номеру
+    // Сначала получаем список, ищем заказ с нужным ID
+    const result = await this.request("GET", "/orders", {
+      limit: 100,
+      page: 1,
+    });
+    const order = result.orders?.find((o: any) => o.id === id);
+    if (!order) {
+      throw new Error("Order not found");
+    }
+    return { order };
+  }
+
+  async getOrderByNumber(number: string): Promise<any> {
+    const result = await this.request("GET", "/orders", {
+      limit: 20,
+      page: 1,
+      "filter[number]": number,
+    });
+    if (!result.orders || result.orders.length === 0) {
+      throw new Error("Order not found");
+    }
+    return { order: result.orders[0] };
   }
 
   async createOrder(order: Record<string, any>): Promise<any> {
