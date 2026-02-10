@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  retailcrm-mcp:
+    build: .
+    ports:
+      - "3002:3002"
+    environment:
+      - RETAILCRM_URL=${RETAILCRM_URL}
+      - RETAILCRM_API_KEY=${RETAILCRM_API_KEY}
+      - MCP_PORT=3002
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge

@@ -1,6 +1,17 @@
 # RetailCRM MCP Server
 
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/retailcrm-mcp)
+[![Deploy on Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/aryazansev/retailcrm-mcp)
+
 MCP (Model Context Protocol) сервер для интеграции с RetailCRM API. Позволяет Claude и другим AI-ассистентам получать доступ к заказам, клиентам и товарам из вашей CRM-системы.
+
+## 🚀 Развернуть в интернете (1 минута)
+
+**Рекомендация:** Railway - лучший бесплатный вариант
+- ⚡ Кликните кнопку **"Deploy on Railway"** выше
+- 🔑 Добавьте API ключи RetailCRM
+- 🌐 Получите рабочий URL: `https://your-app.railway.app`
+- 🎯 Используйте в AI Studio: `https://your-app.railway.app/manifest`
 
 ## 🚀 Быстрый старт
 

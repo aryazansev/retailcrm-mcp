@@ -1,0 +1,23 @@
+[build]
+  builder = "nixpacks"
+
+[deploy]
+  startCommand = "npm run server:prod"
+  healthcheckPath = "/health"
+  healthcheckTimeout = 100
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 10
+
+[[services]]
+  name = "retailcrm-mcp"
+
+  [services.health_checks]
+    path = "/health"
+    port = 3002
+    
+  [services.ports]
+    port = 3002
+    
+  [services.env]
+    MCP_PORT = "3002"
+    NODE_ENV = "production"

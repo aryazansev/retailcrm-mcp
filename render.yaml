@@ -1,0 +1,18 @@
+services:
+  type: web
+  name: retailcrm-mcp
+  env: node
+  plan: free
+  region: oregon
+  buildCommand: npm run build
+  startCommand: npm run server:prod
+  healthCheckPath: /health
+  envVars:
+    - key: NODE_ENV
+      value: production
+    - key: MCP_PORT
+      value: 3002
+    - key: RETAILCRM_URL
+      sync: false
+    - key: RETAILCRM_API_KEY
+      sync: false
