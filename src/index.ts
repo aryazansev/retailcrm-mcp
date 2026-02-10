@@ -16,7 +16,8 @@ import { RetailCRMClient } from "./client.js";
 const RETAILCRM_URL = process.env.RETAILCRM_URL || "";
 const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || "";
 
-if (!RETAILCRM_URL || !RETAILCRM_API_KEY) {
+// Only check env vars at runtime, not during build
+if (process.env.NODE_ENV !== 'production' && (!RETAILCRM_URL || !RETAILCRM_API_KEY)) {
   console.error("Error: RETAILCRM_URL and RETAILCRM_API_KEY must be set");
   console.error("Create .env file in ~/retailcrm-mcp/ with:");
   console.error("RETAILCRM_URL=https://your-account.retailcrm.ru");
