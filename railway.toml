@@ -22,3 +22,11 @@
     
   [services.ports]
     port = 3002
+
+# Railway-specific build configuration
+[build.nixpacks]
+  # Install TypeScript and build
+  phases = [
+    { name = "setup", cmd = "npm ci" },
+    { name = "build", cmd = "npm run build" }
+  ]
