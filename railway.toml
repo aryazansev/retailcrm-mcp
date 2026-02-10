@@ -1,6 +1,11 @@
 [build]
   builder = "nixpacks"
 
+# For Nixpacks build process
+[phases]
+  install = "npm ci"
+  build = "npm run build"
+
 [deploy]
   startCommand = "node build/server.js"
   healthcheckPath = "/health"
@@ -22,11 +27,3 @@
     
   [services.ports]
     port = 3002
-
-# Railway-specific build configuration
-[build.nixpacks]
-  # Install TypeScript and build
-  phases = [
-    { name = "setup", cmd = "npm ci" },
-    { name = "build", cmd = "npm run build" }
-  ]

@@ -1,14 +1,10 @@
-{
-  "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm run build",
-    "startCommand": "node build/server.js"
-  },
-  "deploy": {
-    "startCommand": "node build/server.js",
-    "healthcheckPath": "/health",
-    "healthcheckTimeout": 100,
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
-  }
-}
+# Simple Nixpacks configuration for Railway
+[phases.build]
+  cmds = ["npm run build"]
+
+[start]
+  cmd = "node build/server.js"
+
+[variables]
+  NODE_ENV = "production"
+  MCP_PORT = "3002"

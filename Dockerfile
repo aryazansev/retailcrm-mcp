@@ -24,8 +24,8 @@ WORKDIR /app
 # Copy production package file (no prepare script)
 COPY package.prod.json ./package.json
 
-# Install only production dependencies
-RUN npm ci && npm cache clean --force
+# Install only production dependencies (no package-lock.json to force fresh install)
+RUN npm install --production && npm cache clean --force
 
 # Copy built files from builder stage
 COPY --from=builder /app/build ./build
