@@ -21,11 +21,11 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy production package file (no prepare script)
+COPY package.prod.json ./package.json
 
-# Install only production dependencies (no TypeScript needed)
-RUN npm ci --only=production && npm cache clean --force
+# Install only production dependencies
+RUN npm ci && npm cache clean --force
 
 # Copy built files from builder stage
 COPY --from=builder /app/build ./build

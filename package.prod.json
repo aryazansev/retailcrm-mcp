@@ -1,0 +1,16 @@
+{
+  "name": "retailcrm-mcp",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "build/server.js",
+  "scripts": {
+    "start": "node build/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8",
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}
