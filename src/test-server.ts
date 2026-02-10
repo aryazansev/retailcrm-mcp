@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-const PORT = process.env.PORT || process.env.MCP_PORT || 3002;
+const PORT = process.env.PORT || 3002;
 
 // Health check - самый простой
 app.get('/health', (req, res) => {

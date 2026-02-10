@@ -1,19 +1,15 @@
 {
-  "functions": {
-    "api/server.js": {
-      "runtime": "nodejs18.x",
-      "handler": "server.handler",
-      "maxDuration": 10
+  "version": "2",
+  "builds": [
+    {
+      "src": "src/test-server.ts",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/server.js"
+      "dest": "src/test-server.ts"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "MCP_PORT": "3002"
-  }
+  ]
 }

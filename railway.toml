@@ -1,28 +1,12 @@
+# Railway Simple Config
 [build]
-  builder = "nixpacks"
-
-# For Nixpacks build process
-[phases]
-  install = "npm ci"
-  build = "npm run build"
+  builder = "dockerfile"
 
 [deploy]
   startCommand = "node build/test-server.js"
   healthcheckPath = "/health"
-  healthcheckTimeout = 100
   restartPolicyType = "ON_FAILURE"
-  restartPolicyMaxRetries = 10
 
-# Environment variables for Railway
 [env]
-  MCP_PORT = "3002"
+  PORT = "3002"
   NODE_ENV = "production"
-
-[[services]]
-  name = "retailcrm-mcp"
-
-  [services.health_checks]
-    path = "/health"
-    
-  [services.ports]
-    port = 3002
