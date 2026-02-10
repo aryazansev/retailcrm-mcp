@@ -7,7 +7,7 @@
   build = "npm run build"
 
 [deploy]
-  startCommand = "node build/server.js"
+  startCommand = "node build/test-server.js"
   healthcheckPath = "/health"
   healthcheckTimeout = 100
   restartPolicyType = "ON_FAILURE"

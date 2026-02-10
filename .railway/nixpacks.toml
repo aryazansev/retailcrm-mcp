@@ -3,7 +3,7 @@
   cmds = ["npm run build"]
 
 [start]
-  cmd = "node build/server.js"
+  cmd = "node build/test-server.js"
 
 # Health check configuration
 [healthcheck]
