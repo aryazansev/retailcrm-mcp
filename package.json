@@ -18,8 +18,7 @@
     "start": "node build/index.js",
     "dev": "tsx src/index.ts",
     "server": "tsx src/server.ts",
-    "server:prod": "node build/server.js",
-
+    "server:prod": "node build/server.js"
   },
   "keywords": [
     "mcp",
