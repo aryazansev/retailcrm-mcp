@@ -16,12 +16,25 @@ app.get('/', (req, res) => {
   res.json({
     status: 'running',
     message: 'RetailCRM MCP Server',
-    port: PORT
+    port: PORT,
+    available_routes: ['/health', '/manifest', '/tools', '/debug']
+  });
+});
+
+// Debug endpoint
+app.all('/debug', (req, res) => {
+  console.log('DEBUG HIT:', req.method, req.path);
+  res.json({
+    message: 'Debug endpoint works!',
+    method: req.method,
+    path: req.path,
+    headers: req.headers
   });
 });
 
 // Manifest endpoint (полный для AI Studio)
 app.get('/manifest', (req, res) => {
+  console.log('MANIFEST HIT!');
   res.json({
     name: "retailcrm-mcp",
     version: "1.0.0",
