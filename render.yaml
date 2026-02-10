@@ -5,7 +5,7 @@ services:
   plan: free
   region: oregon
   buildCommand: npm run build
-  startCommand: npm run server:prod
+  startCommand: node build/server.js
   healthCheckPath: /health
   envVars:
     - key: NODE_ENV

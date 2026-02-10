@@ -2,11 +2,16 @@
   builder = "nixpacks"
 
 [deploy]
-  startCommand = "npm run server:prod"
+  startCommand = "node build/server.js"
   healthcheckPath = "/health"
   healthcheckTimeout = 100
   restartPolicyType = "ON_FAILURE"
   restartPolicyMaxRetries = 10
+
+# Environment variables for Railway
+[env]
+  MCP_PORT = "3002"
+  NODE_ENV = "production"
 
 [[services]]
   name = "retailcrm-mcp"
@@ -17,7 +22,3 @@
     
   [services.ports]
     port = 3002
-    
-  [services.env]
-    MCP_PORT = "3002"
-    NODE_ENV = "production"
