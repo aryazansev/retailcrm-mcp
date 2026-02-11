@@ -223,4 +223,163 @@ export class RetailCRMClient {
   async createTask(task: Record<string, any>): Promise<any> {
     return this.request("POST", "/tasks/create", undefined, { task });
   }
+
+  async getTasksHistory(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/tasks/history", params);
+  }
+
+  // ==================== РАСХОДЫ (COSTS) ====================
+
+  async getCosts(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/costs", params);
+  }
+
+  async getCost(id: number): Promise<any> {
+    return this.request("GET", `/costs/${id}`);
+  }
+
+  async createCost(cost: Record<string, any>): Promise<any> {
+    return this.request("POST", "/costs/create", undefined, { cost });
+  }
+
+  async deleteCost(id: number): Promise<any> {
+    return this.request("POST", `/costs/${id}/delete`);
+  }
+
+  // ==================== ПОЛЬЗОВАТЕЛЬСКИЕ ПОЛЯ (CUSTOM FIELDS) ====================
+
+  async getCustomFields(entity: string): Promise<any> {
+    return this.request("GET", "/custom-fields", { entity });
+  }
+
+  async getCustomFieldDictionaries(): Promise<any> {
+    return this.request("GET", "/custom-fields/dictionaries");
+  }
+
+  // ==================== ПОЛЬЗОВАТЕЛИ (USERS) ====================
+
+  async getUsers(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/users", params);
+  }
+
+  async getUser(id: number): Promise<any> {
+    return this.request("GET", `/users/${id}`);
+  }
+
+  async setUserStatus(id: number, status: string): Promise<any> {
+    return this.request("POST", `/users/${id}/status`, undefined, { status });
+  }
+
+  // ==================== ФАЙЛЫ (FILES) ====================
+
+  async getFiles(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/files", params);
+  }
+
+  async getFile(id: number): Promise<any> {
+    return this.request("GET", `/files/${id}`);
+  }
+
+  async deleteFile(id: number): Promise<any> {
+    return this.request("POST", `/files/${id}/delete`);
+  }
+
+  // ==================== ДОПОЛНИТЕЛЬНЫЕ СПРАВОЧНИКИ ====================
+
+  async getCouriers(): Promise<any> {
+    return this.request("GET", "/reference/couriers");
+  }
+
+  async getStores(): Promise<any> {
+    return this.request("GET", "/reference/stores");
+  }
+
+  async getCurrencies(): Promise<any> {
+    return this.request("GET", "/reference/currencies");
+  }
+
+  // ==================== ЛОЯЛЬНОСТЬ (LOYALTY) ====================
+
+  async getLoyaltyAccounts(options: {
+    limit?: number;
+    page?: number;
+    filter?: Record<string, any>;
+  } = {}): Promise<any> {
+    const params: Record<string, any> = {
+      limit: options.limit || 20,
+      page: options.page || 1,
+    };
+
+    if (options.filter) {
+      Object.entries(options.filter).forEach(([key, value]) => {
+        params[`filter[${key}]`] = value;
+      });
+    }
+
+    return this.request("GET", "/loyalty/accounts", params);
+  }
+
+  async getLoyaltyAccount(id: number): Promise<any> {
+    return this.request("GET", `/loyalty/accounts/${id}`);
+  }
 }

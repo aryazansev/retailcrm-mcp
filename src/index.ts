@@ -402,6 +402,365 @@ server.tool(
   }
 );
 
+// ==================== РАСХОДЫ (COSTS) ====================
+
+// Инструмент: получить список расходов
+server.tool(
+  "get_costs",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getCosts({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить расход по ID
+server.tool(
+  "get_cost",
+  {
+    id: z.number().describe("ID расхода"),
+  },
+  async ({ id }) => {
+    const result = await client.getCost(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: создать расход
+server.tool(
+  "create_cost",
+  {
+    cost: z.record(z.any()).describe("Данные расхода (name, date, summ, costItem, etc.)"),
+  },
+  async ({ cost }) => {
+    const result = await client.createCost(cost);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: удалить расход
+server.tool(
+  "delete_cost",
+  {
+    id: z.number().describe("ID расхода для удаления"),
+  },
+  async ({ id }) => {
+    const result = await client.deleteCost(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ПОЛЬЗОВАТЕЛЬСКИЕ ПОЛЯ (CUSTOM FIELDS) ====================
+
+// Инструмент: получить список пользовательских полей
+server.tool(
+  "get_custom_fields",
+  {
+    entity: z.enum(["order", "customer", "product", "user", "task"]).describe("Тип сущности"),
+  },
+  async ({ entity }) => {
+    const result = await client.getCustomFields(entity);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить справочники пользовательских полей
+server.tool(
+  "get_custom_field_dictionaries",
+  {},
+  async () => {
+    const result = await client.getCustomFieldDictionaries();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ПОЛЬЗОВАТЕЛИ (USERS) ====================
+
+// Инструмент: получить список пользователей
+server.tool(
+  "get_users",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getUsers({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить пользователя по ID
+server.tool(
+  "get_user",
+  {
+    id: z.number().describe("ID пользователя"),
+  },
+  async ({ id }) => {
+    const result = await client.getUser(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: изменить статус пользователя
+server.tool(
+  "set_user_status",
+  {
+    id: z.number().describe("ID пользователя"),
+    status: z.enum(["active", "inactive", "sick", "vacation"]).describe("Новый статус"),
+  },
+  async ({ id, status }) => {
+    const result = await client.setUserStatus(id, status);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ФАЙЛЫ (FILES) ====================
+
+// Инструмент: получить список файлов
+server.tool(
+  "get_files",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getFiles({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить файл по ID
+server.tool(
+  "get_file",
+  {
+    id: z.number().describe("ID файла"),
+  },
+  async ({ id }) => {
+    const result = await client.getFile(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: удалить файл
+server.tool(
+  "delete_file",
+  {
+    id: z.number().describe("ID файла для удаления"),
+  },
+  async ({ id }) => {
+    const result = await client.deleteFile(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ДОПОЛНИТЕЛЬНЫЕ СПРАВОЧНИКИ ====================
+
+// Инструмент: получить список курьеров
+server.tool(
+  "get_couriers",
+  {},
+  async () => {
+    const result = await client.getCouriers();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить список складов
+server.tool(
+  "get_stores",
+  {},
+  async () => {
+    const result = await client.getStores();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить список валют
+server.tool(
+  "get_currencies",
+  {},
+  async () => {
+    const result = await client.getCurrencies();
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ЛОЯЛЬНОСТЬ (LOYALTY) ====================
+
+// Инструмент: получить список участий в программе лояльности
+server.tool(
+  "get_loyalty_accounts",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getLoyaltyAccounts({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: получить информацию об участии в лояльности
+server.tool(
+  "get_loyalty_account",
+  {
+    id: z.number().describe("ID участия в программе лояльности"),
+  },
+  async ({ id }) => {
+    const result = await client.getLoyaltyAccount(id);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// ==================== ИСТОРИЯ ИЗМЕНЕНИЙ ====================
+
+// Инструмент: получить историю изменения задач
+server.tool(
+  "get_tasks_history",
+  {
+    limit: z.number().optional().default(20),
+    page: z.number().optional().default(1),
+    filter: z.record(z.any()).optional(),
+  },
+  async ({ limit, page, filter }) => {
+    const result = await client.getTasksHistory({ limit, page, filter });
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
 // Export function to create server (for HTTP usage)
 export async function createServer() {
   return server;
