@@ -481,6 +481,18 @@ async function startServer() {
       }
     });
 
+    // MCP tools endpoint (for compatibility with MCP client)
+    app.get('/mcp/tools', async (req, res) => {
+      try {
+        // Redirect to /tools endpoint
+        const toolsResponse = await fetch(`http://localhost:${PORT}/tools`);
+        const data = await toolsResponse.json();
+        res.json(data);
+      } catch (error) {
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    });
+
     // Start HTTP server
     const server = app.listen(PORT, () => {
       console.log(`✅ RetailCRM MCP Server running on HTTP port ${PORT}`);
