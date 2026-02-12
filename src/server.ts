@@ -857,6 +857,163 @@ async function startServer() {
       }
     });
 
+    // Tool execution endpoint for MCP compatibility
+    app.post('/mcp/tools/:toolName', async (req, res) => {
+      try {
+        const { toolName } = req.params;
+        const args = req.body.arguments || req.body;
+        
+        // Import client
+        const { RetailCRMClient } = await import('./client.js');
+        const RETAILCRM_URL = process.env.RETAILCRM_URL || '';
+        const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || '';
+        const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
+        
+        let result;
+        
+        switch (toolName) {
+          case 'get_orders':
+            result = await client.getOrders(args);
+            break;
+          case 'get_order':
+            result = await client.getOrder(args.id);
+            break;
+          case 'get_order_by_number':
+            result = await client.getOrderByNumber(args.number);
+            break;
+          case 'create_order':
+            result = await client.createOrder(args.order);
+            break;
+          case 'edit_order':
+            result = await client.editOrder(args.id, args.order);
+            break;
+          case 'get_customers':
+            result = await client.getCustomers(args);
+            break;
+          case 'get_customer':
+            result = await client.getCustomer(args.id);
+            break;
+          case 'create_customer':
+            result = await client.createCustomer(args.customer);
+            break;
+          case 'get_products':
+            result = await client.getProducts(args);
+            break;
+          case 'get_product':
+            result = await client.getProduct(args.id);
+            break;
+          case 'get_order_statuses':
+            result = await client.getOrderStatuses();
+            break;
+          case 'get_payment_types':
+            result = await client.getPaymentTypes();
+            break;
+          case 'get_delivery_types':
+            result = await client.getDeliveryTypes();
+            break;
+          case 'get_sites':
+            result = await client.getSites();
+            break;
+          case 'get_order_history':
+            result = await client.getOrderHistory(args.id);
+            break;
+          case 'get_order_files':
+            result = await client.getOrderFiles(args.id);
+            break;
+          case 'get_order_comments':
+            result = await client.getOrderComments(args.id);
+            break;
+          case 'get_orders_statistics':
+            result = await client.getOrdersStatistics(args.filters);
+            break;
+          case 'get_customers_statistics':
+            result = await client.getCustomersStatistics();
+            break;
+          case 'get_tasks':
+            result = await client.getTasks(args);
+            break;
+          case 'create_task':
+            result = await client.createTask(args.task);
+            break;
+          case 'get_tasks_history':
+            result = await client.getTasksHistory(args);
+            break;
+          case 'get_costs':
+            result = await client.getCosts(args);
+            break;
+          case 'get_cost':
+            result = await client.getCost(args.id);
+            break;
+          case 'create_cost':
+            result = await client.createCost(args.cost);
+            break;
+          case 'delete_cost':
+            result = await client.deleteCost(args.id);
+            break;
+          case 'get_custom_fields':
+            result = await client.getCustomFields(args.entity);
+            break;
+          case 'get_custom_field_dictionaries':
+            result = await client.getCustomFieldDictionaries();
+            break;
+          case 'get_users':
+            result = await client.getUsers(args);
+            break;
+          case 'get_user':
+            result = await client.getUser(args.id);
+            break;
+          case 'set_user_status':
+            result = await client.setUserStatus(args.id, args.status);
+            break;
+          case 'get_files':
+            result = await client.getFiles(args);
+            break;
+          case 'get_file':
+            result = await client.getFile(args.id);
+            break;
+          case 'delete_file':
+            result = await client.deleteFile(args.id);
+            break;
+          case 'get_couriers':
+            result = await client.getCouriers();
+            break;
+          case 'get_stores':
+            result = await client.getStores();
+            break;
+          case 'get_currencies':
+            result = await client.getCurrencies();
+            break;
+          case 'get_loyalty_accounts':
+            result = await client.getLoyaltyAccounts(args);
+            break;
+          case 'get_loyalty_account':
+            result = await client.getLoyaltyAccount(args.id);
+            break;
+          default:
+            return res.status(404).json({ error: `Tool ${toolName} not found` });
+        }
+        
+        // Return in MCP format
+        res.json({
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        });
+      } catch (error) {
+        res.status(500).json({
+          content: [
+            {
+              type: 'text',
+              text: `Error: ${error instanceof Error ? error.message : String(error)}`
+            }
+          ]
+        });
+      }
+    });
+
     // Start HTTP server
     const server = app.listen(PORT, () => {
       console.log(`✅ RetailCRM MCP Server running on HTTP port ${PORT}`);
