@@ -484,10 +484,374 @@ async function startServer() {
     // MCP tools endpoint (for compatibility with MCP client)
     app.get('/mcp/tools', async (req, res) => {
       try {
-        // Redirect to /tools endpoint
-        const toolsResponse = await fetch(`http://localhost:${PORT}/tools`);
-        const data = await toolsResponse.json();
-        res.json(data);
+        // Forward request to /tools endpoint internally
+        const toolsData = {
+          tools: [
+            {
+              name: "get_orders",
+              description: "Get list of orders with filtering options",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of orders to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_order",
+              description: "Get detailed information about a specific order",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Order ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_order_by_number",
+              description: "Get order by order number",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  number: { type: "string", description: "Order number" }
+                },
+                required: ["number"]
+              }
+            },
+            {
+              name: "create_order",
+              description: "Create a new order",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  order: { type: "object", description: "Order data" }
+                },
+                required: ["order"]
+              }
+            },
+            {
+              name: "get_customers",
+              description: "Get list of customers",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of customers to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_customer",
+              description: "Get customer by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Customer ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_products",
+              description: "Get list of products",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of products to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_product",
+              description: "Get product by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Product ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_order_statuses",
+              description: "Get order statuses reference",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_delivery_types",
+              description: "Get delivery types reference",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_payment_types",
+              description: "Get payment types reference",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_sites",
+              description: "Get sites reference",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_order_history",
+              description: "Get order history by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Order ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_order_files",
+              description: "Get order files by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Order ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_order_comments",
+              description: "Get order comments by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Order ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_orders_statistics",
+              description: "Get orders statistics",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  filters: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_customers_statistics",
+              description: "Get customers statistics",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_tasks",
+              description: "Get list of tasks",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of tasks to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "create_task",
+              description: "Create a new task",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  task: { type: "object", description: "Task data" }
+                },
+                required: ["task"]
+              }
+            },
+            {
+              name: "get_costs",
+              description: "Get list of costs",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of costs to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_cost",
+              description: "Get cost by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Cost ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "create_cost",
+              description: "Create a new cost",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  cost: { type: "object", description: "Cost data" }
+                },
+                required: ["cost"]
+              }
+            },
+            {
+              name: "delete_cost",
+              description: "Delete cost by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Cost ID to delete" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_custom_fields",
+              description: "Get custom fields by entity type",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  entity: { type: "string", enum: ["order", "customer", "product", "user", "task"], description: "Entity type" }
+                },
+                required: ["entity"]
+              }
+            },
+            {
+              name: "get_custom_field_dictionaries",
+              description: "Get custom field dictionaries",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_users",
+              description: "Get list of users",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of users to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_user",
+              description: "Get user by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "User ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "set_user_status",
+              description: "Set user status",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "User ID" },
+                  status: { type: "string", enum: ["active", "inactive", "sick", "vacation"], description: "New status" }
+                },
+                required: ["id", "status"]
+              }
+            },
+            {
+              name: "get_files",
+              description: "Get list of files",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of files to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_file",
+              description: "Get file by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "File ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "delete_file",
+              description: "Delete file by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "File ID to delete" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_couriers",
+              description: "Get list of couriers",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_stores",
+              description: "Get list of stores",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_currencies",
+              description: "Get list of currencies",
+              inputSchema: { type: "object", properties: {} }
+            },
+            {
+              name: "get_loyalty_accounts",
+              description: "Get loyalty program accounts",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of accounts to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            },
+            {
+              name: "get_loyalty_account",
+              description: "Get loyalty account by ID",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  id: { type: "number", description: "Loyalty account ID" }
+                },
+                required: ["id"]
+              }
+            },
+            {
+              name: "get_tasks_history",
+              description: "Get tasks history",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  limit: { type: "number", description: "Maximum number of history records to return" },
+                  page: { type: "number", description: "Page number for pagination" },
+                  filter: { type: "object", description: "Filter options" }
+                }
+              }
+            }
+          ]
+        };
+        res.json(toolsData);
       } catch (error) {
         res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
