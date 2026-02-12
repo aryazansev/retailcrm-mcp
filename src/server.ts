@@ -107,25 +107,6 @@ async function startServer() {
     // Create MCP server instance
     const mcpServer = await createServer();
     
-    // Mount MCP server on /mcp endpoint
-    app.use('/mcp', async (req, res) => {
-      try {
-        // Forward HTTP requests to MCP server
-        // This is a simplified approach - in production you might want
-        // to use the official MCP HTTP transport when available
-        res.json({
-          status: 'MCP Server running',
-          endpoints: {
-            tools: '/tools',
-            manifest: '/manifest'
-          }
-        });
-      } catch (error) {
-        console.error('MCP Error:', error);
-        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-      }
-    });
-
     // List all available tools
     app.get('/tools', async (req, res) => {
       try {
