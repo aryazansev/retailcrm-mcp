@@ -99,8 +99,23 @@ export class RetailCRMClient {
     return this.request("POST", "/orders/create", undefined, { order });
   }
 
-  async editOrder(id: number, order: Record<string, any>): Promise<any> {
-    return this.request("POST", `/orders/${id}/edit`, undefined, { order });
+  async editOrder(
+    id: number | string,
+    by: string = "id",
+    site?: string,
+    order?: Record<string, any>
+  ): Promise<any> {
+    const params: Record<string, any> = { by };
+    if (site) {
+      params.site = site;
+    }
+    
+    const body: Record<string, any> = {};
+    if (order) {
+      body.order = order;
+    }
+    
+    return this.request("POST", `/orders/${id}/edit`, params, body);
   }
 
   // Клиенты

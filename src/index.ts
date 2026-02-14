@@ -125,14 +125,21 @@ server.tool(
 );
 
 // Инструмент: редактировать заказ
+// Примеры использования:
+// 1. Смена статуса: edit_order({id: 352121, order: {status: "completed"}})
+// 2. Изменение адреса: edit_order({id: 352121, order: {delivery: {address: {text: "ул. Ленина, д. 10"}}}})
+// 3. Обновление клиента: edit_order({id: 352121, order: {customer: {id: 12345}}})
+// 4. По externalId: edit_order({id: "external-123", by: "externalId", site: "test", order: {status: "processing"}})
 server.tool(
   "edit_order",
   {
-    id: z.number().describe("ID заказа для редактирования"),
-    order: z.record(z.any()).describe("Данные для обновления (status, customer, delivery, etc.)"),
+    id: z.union([z.number(), z.string()]).describe("ID заказа (число) или externalId (строка)"),
+    by: z.enum(["id", "externalId"]).optional().default("id").describe("Тип идентификатора: id или externalId"),
+    site: z.string().optional().describe("Код магазина (обязательно при использовании externalId)"),
+    order: z.record(z.any()).describe("Данные для обновления. Примеры: {status: 'completed'}, {customer: {id: 123}}, {delivery: {address: {text: 'ул. Ленина, 1'}}}"),
   },
-  async ({ id, order }) => {
-    const result = await client.editOrder(id, order);
+  async ({ id, by, site, order }) => {
+    const result = await client.editOrder(id, by, site, order);
     return {
       content: [
         {
