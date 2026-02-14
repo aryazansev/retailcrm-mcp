@@ -124,6 +124,26 @@ server.tool(
   }
 );
 
+// Инструмент: редактировать заказ
+server.tool(
+  "edit_order",
+  {
+    id: z.number().describe("ID заказа для редактирования"),
+    order: z.record(z.any()).describe("Данные для обновления (status, customer, delivery, etc.)"),
+  },
+  async ({ id, order }) => {
+    const result = await client.editOrder(id, order);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
 // Инструмент: получить список клиентов
 server.tool(
   "get_customers",
