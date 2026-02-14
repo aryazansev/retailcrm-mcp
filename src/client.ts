@@ -96,7 +96,31 @@ export class RetailCRMClient {
   }
 
   async createOrder(order: Record<string, any>): Promise<any> {
-    return this.request("POST", "/orders/create", undefined, { order });
+    const formData = new URLSearchParams();
+    this.flattenObject(order, "order", formData);
+    
+    const url = new URL(`${this.baseUrl}/api/v5/orders/create`);
+    url.searchParams.append("apiKey", this.apiKey);
+    
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (data.success === false) {
+      throw new Error(`API Error: ${data.errorMsg || "Unknown error"}`);
+    }
+    
+    return data;
   }
 
   async editOrder(
@@ -110,12 +134,64 @@ export class RetailCRMClient {
       params.site = site;
     }
     
-    const body: Record<string, any> = {};
+    // Формируем тело запроса в формате form-urlencoded
+    const formData = new URLSearchParams();
     if (order) {
-      body.order = order;
+      // Преобразуем объект order в плоский формат form-urlencoded
+      this.flattenObject(order, "order", formData);
     }
     
-    return this.request("POST", `/orders/${id}/edit`, params, body);
+    const url = new URL(`${this.baseUrl}/api/v5/orders/${id}/edit`);
+    url.searchParams.append("apiKey", this.apiKey);
+    
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value));
+        }
+      });
+    }
+    
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (data.success === false) {
+      throw new Error(`API Error: ${data.errorMsg || "Unknown error"}`);
+    }
+    
+    return data;
+  }
+  
+  // Вспомогательный метод для преобразования объекта в плоский формат
+  private flattenObject(obj: any, prefix: string, formData: URLSearchParams): void {
+    if (obj === null || obj === undefined) return;
+    
+    if (typeof obj !== "object") {
+      formData.append(prefix, String(obj));
+      return;
+    }
+    
+    if (Array.isArray(obj)) {
+      obj.forEach((item, index) => {
+        this.flattenObject(item, `${prefix}[${index}]`, formData);
+      });
+    } else {
+      Object.entries(obj).forEach(([key, value]) => {
+        const newKey = prefix ? `${prefix}[${key}]` : key;
+        this.flattenObject(value, newKey, formData);
+      });
+    }
   }
 
   // Клиенты
