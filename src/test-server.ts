@@ -52,7 +52,7 @@ app.get('/manifest', (req, res) => {
         "get_orders",
         "get_order", 
         "create_order",
-        "update_order",
+        "edit_order",
         "get_customers",
         "get_customer",
         "create_customer",
@@ -98,6 +98,48 @@ app.get('/tools', (req, res) => {
             id: { type: "string", description: "Order ID" }
           },
           required: ["id"]
+        }
+      },
+      {
+        name: "create_order",
+        description: "Create a new order in RetailCRM",
+        inputSchema: {
+          type: "object",
+          properties: {
+            order: { 
+              type: "string", 
+              description: "JSON string with order data. Example: '{\"status\": \"new\", \"customer\": {\"id\": 123}}'" 
+            }
+          },
+          required: ["order"]
+        }
+      },
+      {
+        name: "edit_order",
+        description: "Edit an existing order in RetailCRM",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { 
+              type: ["number", "string"], 
+              description: "Order ID (number) or externalId (string)" 
+            },
+            by: { 
+              type: "string", 
+              enum: ["id", "externalId"],
+              default: "id",
+              description: "Identifier type: id or externalId" 
+            },
+            site: { 
+              type: "string", 
+              description: "Site code (required when using externalId)" 
+            },
+            order: { 
+              type: "string", 
+              description: "JSON string with order data to update. Examples: '{\"status\": \"completed\"}' or '{\"customer\": {\"id\": 123}}' or '{\"delivery\": {\"address\": {\"text\": \"Street 1\"}}}'" 
+            }
+          },
+          required: ["id", "order"]
         }
       },
       {
