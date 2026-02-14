@@ -106,25 +106,22 @@ server.tool(
 );
 
 // Инструмент: создать заказ
-// ВАЖНО: Параметр order должен быть объектом, не строкой!
 server.tool(
   "create_order",
   {
-    order: z.record(z.any()).describe("ОБЪЕКТ с данными заказа. НЕ строка! Пример: {status: 'new', customer: {id: 123}, items: [...]}"),
+    order: z.string().describe("JSON-строка с данными заказа. Пример: '{\"status\": \"new\", \"customer\": {\"id\": 123}, \"items\": [...]}'"),
   },
   async ({ order }) => {
-    // Проверяем, что order - это объект, а не строка
-    let orderData = order;
-    if (typeof order === 'string') {
-      try {
-        orderData = JSON.parse(order);
-      } catch (e) {
-        throw new Error("Параметр order должен быть объектом, не строкой");
-      }
+    // Парсим JSON-строку в объект
+    let orderData;
+    try {
+      orderData = JSON.parse(order);
+    } catch (e) {
+      throw new Error(`Параметр order должен быть валидной JSON-строкой. Ошибка: ${e instanceof Error ? e.message : String(e)}`);
     }
     
     if (typeof orderData !== 'object' || orderData === null) {
-      throw new Error("Параметр order должен быть объектом с полями заказа");
+      throw new Error("Параметр order должен содержать объект в JSON-формате");
     }
     
     const result = await client.createOrder(orderData);
@@ -140,33 +137,29 @@ server.tool(
 );
 
 // Инструмент: редактировать заказ
-// ВАЖНО: Параметр order должен быть объектом, не строкой!
 // Примеры использования:
-// 1. Смена статуса: edit_order({id: 352121, order: {status: "completed"}})
-// 2. Изменение адреса: edit_order({id: 352121, order: {delivery: {address: {text: "ул. Ленина, д. 10"}}}})
-// 3. Обновление клиента: edit_order({id: 352121, order: {customer: {id: 12345}}})
-// 4. По externalId: edit_order({id: "external-123", by: "externalId", site: "test", order: {status: "processing"}})
+// 1. Смена статуса: edit_order({id: 352121, order: '{"status": "completed"}'})
+// 2. Изменение адреса: edit_order({id: 352121, order: '{"delivery": {"address": {"text": "ул. Ленина, д. 10"}}}'})
+// 3. Обновление клиента: edit_order({id: 352121, order: '{"customer": {"id": 12345}}'})
 server.tool(
   "edit_order",
   {
     id: z.union([z.number(), z.string()]).describe("ID заказа (число) или externalId (строка)"),
     by: z.enum(["id", "externalId"]).optional().default("id").describe("Тип идентификатора: id или externalId"),
     site: z.string().optional().describe("Код магазина (обязательно при использовании externalId)"),
-    order: z.record(z.any()).describe("ОБЪЕКТ с данными для обновления. НЕ строка! Пример объекта: {status: 'completed'} или {customer: {id: 123}} или {delivery: {address: {text: 'ул. Ленина, 1'}}}"),
+    order: z.string().describe("JSON-строка с данными для обновления. Примеры: '{\"status\": \"completed\"}' или '{\"customer\": {\"id\": 123}}'"),
   },
   async ({ id, by, site, order }) => {
-    // Проверяем, что order - это объект, а не строка
-    let orderData = order;
-    if (typeof order === 'string') {
-      try {
-        orderData = JSON.parse(order);
-      } catch (e) {
-        throw new Error("Параметр order должен быть объектом, не строкой. Пример: {status: 'completed'}");
-      }
+    // Парсим JSON-строку в объект
+    let orderData;
+    try {
+      orderData = JSON.parse(order);
+    } catch (e) {
+      throw new Error(`Параметр order должен быть валидной JSON-строкой. Ошибка: ${e instanceof Error ? e.message : String(e)}. Пример: '{"status": "completed"}'`);
     }
     
     if (typeof orderData !== 'object' || orderData === null) {
-      throw new Error("Параметр order должен быть объектом с полями заказа");
+      throw new Error("Параметр order должен содержать объект в JSON-формате");
     }
     
     const result = await client.editOrder(id, by, site, orderData);
