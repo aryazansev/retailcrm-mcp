@@ -97,7 +97,7 @@ export class RetailCRMClient {
 
   async createOrder(order: Record<string, any>): Promise<any> {
     const formData = new URLSearchParams();
-    this.flattenObject(order, "order", formData);
+    formData.append("order", JSON.stringify(order));
     
     const url = new URL(`${this.baseUrl}/api/v5/orders/create`);
     url.searchParams.append("apiKey", this.apiKey);
@@ -137,8 +137,8 @@ export class RetailCRMClient {
     // Формируем тело запроса в формате form-urlencoded
     const formData = new URLSearchParams();
     if (order) {
-      // Преобразуем объект order в плоский формат form-urlencoded
-      this.flattenObject(order, "order", formData);
+      // Сериализуем order в JSON строку
+      formData.append("order", JSON.stringify(order));
     }
     
     const url = new URL(`${this.baseUrl}/api/v5/orders/${id}/edit`);
