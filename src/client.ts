@@ -222,6 +222,40 @@ export class RetailCRMClient {
     return this.request("POST", "/customers/create", undefined, { customer });
   }
 
+  async getCustomerByExternalId(externalId: string, site: string): Promise<any> {
+    return this.request("GET", `/customers/${externalId}`, { by: "externalId", site });
+  }
+
+  async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {
+    const formData = new URLSearchParams();
+    formData.append("customer", JSON.stringify(customer));
+    
+    const url = new URL(`${this.baseUrl}/api/v5/customers/${externalId}/edit`);
+    url.searchParams.append("apiKey", this.apiKey);
+    url.searchParams.append("by", "externalId");
+    url.searchParams.append("site", site);
+    
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (data.success === false) {
+      throw new Error(`API Error: ${data.errorMsg || "Unknown error"}`);
+    }
+    
+    return data;
+  }
+
   // Товары
   async getProducts(options: {
     limit?: number;

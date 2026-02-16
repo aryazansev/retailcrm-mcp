@@ -214,6 +214,59 @@ server.tool(
   }
 );
 
+// Инструмент: получить клиента по externalId
+server.tool(
+  "get_customer_by_external_id",
+  {
+    externalId: z.string().describe("Внешний ID клиента"),
+    site: z.string().describe("Код магазина (site)"),
+  },
+  async ({ externalId, site }) => {
+    const result = await client.getCustomerByExternalId(externalId, site);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
+// Инструмент: редактировать клиента по externalId
+server.tool(
+  "edit_customer_by_external_id",
+  {
+    externalId: z.string().describe("Внешний ID клиента"),
+    site: z.string().describe("Код магазина (site)"),
+    customer: z.string().describe("JSON-строка с данными клиента для обновления. Примеры: '{\"firstName\": \"Иван\", \"lastName\": \"Петров\"}' или '{\"email\": \"test@example.com\"}'"),
+  },
+  async ({ externalId, site, customer }) => {
+    // Парсим JSON-строку в объект
+    let customerData;
+    try {
+      customerData = JSON.parse(customer);
+    } catch (e) {
+      throw new Error(`Параметр customer должен быть валидной JSON-строкой. Ошибка: ${e instanceof Error ? e.message : String(e)}. Пример: '{"firstName": "Иван"}'`);
+    }
+    
+    if (typeof customerData !== 'object' || customerData === null) {
+      throw new Error("Параметр customer должен содержать объект в JSON-формате");
+    }
+    
+    const result = await client.editCustomerByExternalId(externalId, site, customerData);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
+    };
+  }
+);
+
 // Инструмент: получить список товаров
 server.tool(
   "get_products",

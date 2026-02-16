@@ -55,6 +55,8 @@ app.get('/manifest', (req, res) => {
         "edit_order",
         "get_customers",
         "get_customer",
+        "get_customer_by_external_id",
+        "edit_customer_by_external_id",
         "create_customer",
         "update_customer",
         "get_products",
@@ -151,6 +153,31 @@ app.get('/tools', (req, res) => {
             limit: { type: "number", description: "Maximum number of customers to return" },
             page: { type: "number", description: "Page number for pagination" }
           }
+        }
+      },
+      {
+        name: "get_customer_by_external_id",
+        description: "Get customer by external ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            externalId: { type: "string", description: "External customer ID" },
+            site: { type: "string", description: "Site code" }
+          },
+          required: ["externalId", "site"]
+        }
+      },
+      {
+        name: "edit_customer_by_external_id",
+        description: "Edit customer by external ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            externalId: { type: "string", description: "External customer ID" },
+            site: { type: "string", description: "Site code" },
+            customer: { type: "string", description: "JSON string with customer data. Example: '{\"firstName\": \"Ivan\", \"email\": \"test@example.com\"}'" }
+          },
+          required: ["externalId", "site", "customer"]
         }
       }
     ]
