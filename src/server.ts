@@ -276,6 +276,7 @@ app.all('/webhook/vykup', async (req, res) => {
 });
 
 // Webhook для обновления всех клиентов (массовый пересчет)
+// NOTE: This is slow because we can't filter orders by customer efficiently
 app.post('/webhook/vykup/update-all', async (req, res) => {
   try {
     const { RetailCRMClient } = await import('./client.js');
@@ -290,20 +291,18 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
     
     const maxCustomers = parseInt(req.query.maxCustomers as string) || parseInt(req.body?.maxCustomers as string) || 100;
     
-    // Step 1: Build customer -> order stats map from all orders
-    const customerStats: Record<number, { completed: number; canceled: number }> = {};
+    // For now, just return info - full implementation needs different API approach
+    res.json({
+      success: false,
+      error: 'This endpoint is under maintenance. Use /webhook/vykup?customerId=ID instead for individual customers.',
+      hint: 'To update all customers, please run the script locally with access to the API.'
+    });
     
-    let orderPage = 1;
-    const orderLimit = 100;
-    let totalOrderPages = 1000; // Initial guess
-    
-    console.log('Building order stats map...');
-    
-    while (orderPage <= totalOrderPages && orderPage <= 5000) {
-      const ordersResult = await client.getOrders({
-        limit: orderLimit,
-        page: orderPage
-      });
+  } catch (error) {
+    console.error('Webhook vykup update-all error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
