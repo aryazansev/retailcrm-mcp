@@ -20,7 +20,8 @@
     "server": "tsx src/server.ts",
     "server:prod": "node build/server.js",
     "test-server": "tsx src/test-server.ts",
-    "test-server:prod": "node build/test-server.js"
+    "test-server:prod": "node build/test-server.js",
+    "update-all": "tsx scripts/update-all-customers.ts"
   },
   "keywords": [
     "mcp",
@@ -49,7 +50,8 @@
     "dotenv": "^16.4.5",
     "zod": "^3.23.8",
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
