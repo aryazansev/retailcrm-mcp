@@ -295,44 +295,15 @@ export class RetailCRMClient {
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     console.log('editCustomer called. id:', id, 'site:', site);
     
-    // If no site, try without it first
-    if (!site) {
-      try {
-        // Use JSON format as per RetailCRM API
-        const body = JSON.stringify({ customer });
-        
-        const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}`;
-        console.log('editCustomer trying without site:', url, body);
-        
-        const response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: body,
-        });
-        
-        const data = await response.json();
-        console.log('editCustomer response without site:', JSON.stringify(data));
-        
-        if (response.ok && data.success !== false) {
-          return data;
-        }
-      } catch (e) {
-        console.log('Error without site:', e);
-      }
-    }
-    
-    // Try with site - use JSON format
+    // Always use site if we have it
     const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
     
     for (const s of sitesToTry) {
       try {
-        // Try both formats: customFields AND direct field
         const vykupValue = (customer as any).vykup;
         
-        // Format 1: customFields
-        const customerData1: any = {
+        // Format: customFields with JSON (exact format that works)
+        const customerData: any = {
           customFields: {
             vykup: vykupValue
           }
@@ -340,44 +311,27 @@ export class RetailCRMClient {
         
         const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}`;
         
-        // Try format 1: customFields with JSON
-        console.log('editCustomer trying customFields JSON:', url, JSON.stringify(customerData1));
+        console.log('editCustomer POST to:', url);
+        console.log('editCustomer body:', JSON.stringify({ customer: customerData }));
         
-        let response = await fetch(url, {
+        const response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ customer: customerData1 }),
+          body: JSON.stringify({ customer: customerData }),
         });
         
-        let data = await response.json();
-        console.log('editCustomer customFields JSON response:', JSON.stringify(data));
+        const data = await response.json();
+        console.log('editCustomer response status:', response.status);
+        console.log('editCustomer response:', JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
+          console.log('SUCCESS! Customer updated');
           return data;
         }
         
-        // Try format 2: direct field with JSON
-        console.log('Trying direct field JSON...');
-        const customerData2 = { vykup: vykupValue };
-        
-        response = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ customer: customerData2 }),
-        });
-        
-        data = await response.json();
-        console.log('editCustomer direct JSON response:', JSON.stringify(data));
-        
-        if (response.ok && data.success !== false) {
-          return data;
-        }
-        
-        console.log('Site', s, 'failed');
+        console.log('Site', s, 'failed:', data.errorMsg);
       } catch (e) {
         console.log('Site', s, 'error:', e);
       }
