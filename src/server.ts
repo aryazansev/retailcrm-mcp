@@ -133,7 +133,7 @@ app.all('/webhook/vykup', async (req, res) => {
       for (const order of ordersResult.orders) {
         if (order.status === 'completed') {
           completedOrders++;
-        } else if (order.status === 'cancel-other' || order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled' || order.status === 'vozvrat-im' || order.status === 'return' || order.status === 'returned') {
+        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
           canceledOrders++;
         }
       }
@@ -160,15 +160,18 @@ app.all('/webhook/vykup', async (req, res) => {
     
     console.log('Vykup percent:', vykupPercent);
     console.log('Customer site:', customerSite);
+    console.log('Customer externalId:', customer.externalId);
     
     let updateResult;
     
     // First try with externalId if available
     if (customer.externalId) {
-      console.log('Trying edit by externalId:', customer.externalId);
+      console.log('Trying edit by externalId:', customer.externalId, 'site:', customerSite);
       try {
         updateResult = await client.editCustomerByExternalId(customer.externalId, customerSite, {
-          vykup: vykupPercent
+          customFields: {
+            vykup: vykupPercent
+          }
         });
         console.log('Edit by externalId success');
       } catch (e) {
@@ -257,13 +260,13 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
               break;
             }
             
-            for (const order of ordersResult.orders) {
-              if (order.status === 'completed') {
-                completedOrders++;
-              } else if (order.status === 'cancel-other' || order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled' || order.status === 'vozvrat-im' || order.status === 'return' || order.status === 'returned') {
-                canceledOrders++;
+              for (const order of ordersResult.orders) {
+                if (order.status === 'completed') {
+                  completedOrders++;
+                } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+                  canceledOrders++;
+                }
               }
-            }
             
             if (ordersResult.orders.length < orderLimit) {
               break;
