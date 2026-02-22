@@ -295,7 +295,35 @@ export class RetailCRMClient {
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     console.log('editCustomer called. id:', id, 'site:', site);
     
-    // Try different sites if the first one fails
+    // If no site, try without it first
+    if (!site) {
+      try {
+        const formData = new URLSearchParams();
+        formData.append("customer", JSON.stringify(customer));
+        
+        const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}`;
+        console.log('editCustomer trying without site:', url);
+        
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formData.toString(),
+        });
+        
+        const data = await response.json();
+        console.log('editCustomer response without site:', JSON.stringify(data));
+        
+        if (response.ok && data.success !== false) {
+          return data;
+        }
+      } catch (e) {
+        console.log('Error without site:', e);
+      }
+    }
+    
+    // Try with site
     const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
     
     for (const s of sitesToTry) {
