@@ -31,7 +31,8 @@ app.all('/webhook/vykup', async (req, res) => {
     const queryCustomerId = req.query?.customerId as string;
     
     const phone = bodyPhone || queryPhone;
-    const customerId = bodyCustomerId || queryCustomerId;
+    const customerIdRaw = bodyCustomerId || queryCustomerId;
+    const customerId = customerIdRaw ? Number(customerIdRaw) : null;
     
     if (!phone && !customerId) {
       return res.status(400).json({ error: 'Требуется phone или customerId (в теле или query string: ?phone=... или ?customerId=...)' });
