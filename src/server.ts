@@ -79,6 +79,7 @@ app.all('/webhook/vykup', async (req, res) => {
       console.log('Getting order by ID:', orderIdNum);
       try {
         const orderResult = await client.getOrder(orderIdNum);
+        console.log('Order result:', JSON.stringify(orderResult));
         if (orderResult.order?.customer) {
           // Get customer from order
           if (typeof orderResult.order.customer === 'object') {
@@ -87,6 +88,7 @@ app.all('/webhook/vykup', async (req, res) => {
           } else {
             customerId = Number(orderResult.order.customer);
           }
+          console.log('Got customerId from order:', customerId);
         }
       } catch (e) {
         console.log('Error getting order:', e);
