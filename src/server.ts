@@ -63,7 +63,7 @@ app.all('/webhook/vykup', async (req, res) => {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
         // First get the customer to find their site
-        const allSites = ['ashrussia-ru', 'justcouture-ru', 'afiapark'];
+        const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
         for (const s of allSites) {
           try {
             const customerResult = await client.getCustomer(customerId, s);
