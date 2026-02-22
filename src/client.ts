@@ -18,11 +18,13 @@ export class RetailCRMClient {
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== '') {
           url.searchParams.append(key, String(value));
         }
       });
     }
+
+    console.log(`API Request: ${method} ${url.toString()}`);
 
     const options: RequestInit = {
       method,
@@ -227,15 +229,31 @@ export class RetailCRMClient {
   }
 
   async getCustomerByPhone(phone: string): Promise<any> {
-    const result = await this.request("GET", "/customers", {
-      limit: 1,
-      page: 1,
-      "filter[phones]": phone,
-    });
-    if (!result.customers || result.customers.length === 0) {
+    console.log('getCustomerByPhone called with phone:', phone);
+    
+    // Try different filter formats - use query string instead
+    const url = new URL(`${this.baseUrl}/api/v5/customers`);
+    url.searchParams.append("apiKey", this.apiKey);
+    url.searchParams.append("limit", "20");
+    url.searchParams.append("page", "1");
+    url.searchParams.append("filter[phone]", phone);
+    
+    console.log('Fetching customers from:', url.toString());
+    
+    const response = await fetch(url.toString());
+    const data = await response.json();
+    
+    console.log('Customers response:', JSON.stringify(data));
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (!data.customers || data.customers.length === 0) {
       throw new Error("Customer not found");
     }
-    return { customer: result.customers[0] };
+    
+    return { customer: data.customers[0] };
   }
 
   async editCustomer(id: number, customer: Record<string, any>): Promise<any> {
