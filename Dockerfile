@@ -3,6 +3,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
+# Install bash for running scripts
+RUN apk add --no-cache bash
+
 # Copy package files
 COPY package*.json tsconfig.json ./
 
@@ -21,7 +24,7 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine AS production
 
-# Install bash for scripts
+# Install bash and curl for scripts
 RUN apk add --no-cache bash curl
 
 # Set working directory
