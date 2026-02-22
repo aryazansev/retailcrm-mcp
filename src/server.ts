@@ -32,8 +32,11 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const phone = bodyPhone || queryPhone;
     let normalizedPhone = phone;
-    if (normalizedPhone && !normalizedPhone.startsWith('+')) {
-      normalizedPhone = '+' + normalizedPhone;
+    if (normalizedPhone) {
+      normalizedPhone = normalizedPhone.replace(/\D/g, '');
+      if (!normalizedPhone.startsWith('7')) {
+        normalizedPhone = '7' + normalizedPhone;
+      }
     }
     const customerIdRaw = bodyCustomerId || queryCustomerId;
     const customerId = customerIdRaw ? Number(customerIdRaw) : null;

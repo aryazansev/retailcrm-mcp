@@ -230,11 +230,13 @@ export class RetailCRMClient {
   }
 
   async getCustomerByPhone(phone: string): Promise<any> {
+    const phoneClean = phone.replace(/\D/g, '');
+    
     const url = new URL(`${this.baseUrl}/api/v5/customers`);
     url.searchParams.append("apiKey", this.apiKey);
-    url.searchParams.append("limit", "20");
+    url.searchParams.append("limit", "50");
     url.searchParams.append("page", "1");
-    url.searchParams.append("filter[phone]", phone);
+    url.searchParams.append("filter[phone]", phoneClean);
     
     const response = await fetch(url.toString());
     const data = await response.json();
@@ -248,6 +250,7 @@ export class RetailCRMClient {
     }
     
     const customer = data.customers[0];
+    console.log('Found customer:', customer.id, 'site:', customer.site);
     return { customer, site: customer.site };
   }
 
