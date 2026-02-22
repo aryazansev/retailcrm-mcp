@@ -226,6 +226,46 @@ export class RetailCRMClient {
     return this.request("GET", `/customers/${externalId}`, { by: "externalId", site });
   }
 
+  async getCustomerByPhone(phone: string): Promise<any> {
+    const result = await this.request("GET", "/customers", {
+      limit: 1,
+      page: 1,
+      "filter[phone]": phone,
+    });
+    if (!result.customers || result.customers.length === 0) {
+      throw new Error("Customer not found");
+    }
+    return { customer: result.customers[0] };
+  }
+
+  async editCustomer(id: number, customer: Record<string, any>): Promise<any> {
+    const formData = new URLSearchParams();
+    formData.append("customer", JSON.stringify(customer));
+    
+    const url = new URL(`${this.baseUrl}/api/v5/customers/${id}/edit`);
+    url.searchParams.append("apiKey", this.apiKey);
+    
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: formData.toString(),
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (data.success === false) {
+      throw new Error(`API Error: ${data.errorMsg || "Unknown error"}`);
+    }
+    
+    return data;
+  }
+
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {
     const formData = new URLSearchParams();
     formData.append("customer", JSON.stringify(customer));

@@ -22,6 +22,202 @@ app.get('/health', (req, res) => {
   }
 });
 
+// Webhook для расчета процента выкупа
+app.post('/webhook/vykup', async (req, res) => {
+  try {
+    const { phone, customerId, site } = req.body;
+    
+    if (!phone && !customerId) {
+      return res.status(400).json({ error: 'Требуется phone или customerId' });
+    }
+
+    const { RetailCRMClient } = await import('./client.js');
+    const RETAILCRM_URL = process.env.RETAILCRM_URL || '';
+    const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || '';
+    
+    if (!RETAILCRM_URL || !RETAILCRM_API_KEY) {
+      return res.status(500).json({ error: 'RETAILCRM_URL or RETAILCRM_API_KEY not configured' });
+    }
+    
+    const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
+    
+    let customer;
+    if (customerId) {
+      const customerResult = await client.getCustomer(customerId);
+      customer = customerResult.customer;
+    } else {
+      const customerResult = await client.getCustomerByPhone(phone);
+      customer = customerResult.customer;
+    }
+    
+    if (!customer) {
+      return res.status(404).json({ error: 'Клиент не найден' });
+    }
+    
+    const customerIdCRM = customer.id;
+    
+    let page = 1;
+    let completedOrders = 0;
+    let canceledOrders = 0;
+    const limit = 100;
+    
+    while (true) {
+      const ordersResult = await client.getOrders({
+        limit,
+        page,
+        filter: {
+          customer: customerIdCRM
+        }
+      });
+      
+      if (!ordersResult.orders || ordersResult.orders.length === 0) {
+        break;
+      }
+      
+      for (const order of ordersResult.orders) {
+        if (order.status === 'completed' || order.status === 'complete' || order.status === 'compled') {
+          completedOrders++;
+        } else if (order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled') {
+          canceledOrders++;
+        }
+      }
+      
+      if (ordersResult.orders.length < limit) {
+        break;
+      }
+      page++;
+    }
+    
+    let vykupPercent = 0;
+    if (canceledOrders > 0) {
+      vykupPercent = Math.round((completedOrders / canceledOrders) * 100);
+    } else if (completedOrders > 0) {
+      vykupPercent = 100;
+    }
+    
+    const updateResult = await client.editCustomer(customerIdCRM, {
+      vykup: vykupPercent
+    });
+    
+    res.json({
+      success: true,
+      customerId: customerIdCRM,
+      phone: customer.phones?.[0]?.number || phone,
+      completedOrders,
+      canceledOrders,
+      vykupPercent,
+      updated: updateResult.success
+    });
+    
+  } catch (error) {
+    console.error('Webhook vykup error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
+// Webhook для обновления всех клиентов (массовый пересчет)
+app.post('/webhook/vykup/update-all', async (req, res) => {
+  try {
+    const { RetailCRMClient } = await import('./client.js');
+    const RETAILCRM_URL = process.env.RETAILCRM_URL || '';
+    const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || '';
+    
+    if (!RETAILCRM_URL || !RETAILCRM_API_KEY) {
+      return res.status(500).json({ error: 'RETAILCRM_URL or RETAILCRM_API_KEY not configured' });
+    }
+    
+    const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
+    
+    let page = 1;
+    let updated = 0;
+    let errors = 0;
+    const limit = 50;
+    const maxCustomers = parseInt(req.body.maxCustomers) || 100;
+    
+    while (updated < maxCustomers) {
+      const customersResult = await client.getCustomers({
+        limit,
+        page
+      });
+      
+      if (!customersResult.customers || customersResult.customers.length === 0) {
+        break;
+      }
+      
+      for (const customer of customersResult.customers) {
+        try {
+          const customerId = customer.id;
+          
+          let orderPage = 1;
+          let completedOrders = 0;
+          let canceledOrders = 0;
+          const orderLimit = 100;
+          
+          while (true) {
+            const ordersResult = await client.getOrders({
+              limit: orderLimit,
+              page: orderPage,
+              filter: {
+                customer: customerId
+              }
+            });
+            
+            if (!ordersResult.orders || ordersResult.orders.length === 0) {
+              break;
+            }
+            
+            for (const order of ordersResult.orders) {
+              if (order.status === 'completed' || order.status === 'complete' || order.status === 'compled') {
+                completedOrders++;
+              } else if (order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled') {
+                canceledOrders++;
+              }
+            }
+            
+            if (ordersResult.orders.length < orderLimit) {
+              break;
+            }
+            orderPage++;
+          }
+          
+          let vykupPercent = 0;
+          if (canceledOrders > 0) {
+            vykupPercent = Math.round((completedOrders / canceledOrders) * 100);
+          } else if (completedOrders > 0) {
+            vykupPercent = 100;
+          }
+          
+          await client.editCustomer(customerId, {
+            vykup: vykupPercent
+          });
+          
+          updated++;
+          console.log(`Updated customer ${customerId}: completed=${completedOrders}, canceled=${canceledOrders}, vykup=${vykupPercent}%`);
+          
+        } catch (err) {
+          errors++;
+          console.error(`Error updating customer ${customer.id}:`, err);
+        }
+      }
+      
+      if (customersResult.customers.length < limit) {
+        break;
+      }
+      page++;
+    }
+    
+    res.json({
+      success: true,
+      updated,
+      errors
+    });
+    
+  } catch (error) {
+    console.error('Webhook vykup update-all error:', error);
+    res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+});
+
 // Enable CORS for AI Studio and other clients
 app.use(cors({
   origin: [
