@@ -234,6 +234,24 @@ export class RetailCRMClient {
       const response = await fetch(url);
       const data = await response.json();
       console.log('getCustomerByIdRaw response:', JSON.stringify(data));
+      
+      // Also try with site
+      const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
+      for (const site of sites) {
+        try {
+          const url2 = `${this.baseUrl}/api/v5/customers/${id}?apiKey=${this.apiKey}&site=${site}`;
+          console.log('getCustomerByIdRaw trying site:', url2);
+          const response2 = await fetch(url2);
+          const data2 = await response2.json();
+          console.log('getCustomerByIdRaw site response:', site, JSON.stringify(data2));
+          if (data2.customer) {
+            return data2;
+          }
+        } catch (e) {
+          console.log('Site', site, 'error:', e);
+        }
+      }
+      
       return data;
     } catch (e) {
       console.log('getCustomerByIdRaw error:', e);
