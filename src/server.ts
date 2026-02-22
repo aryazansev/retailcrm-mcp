@@ -59,14 +59,21 @@ app.all('/webhook/vykup', async (req, res) => {
     
     let customer;
     let customerSite = null;
-    if (customerId) {
-      const customerResult = await client.getCustomer(customerId);
-      customer = customerResult.customer;
-      customerSite = customerResult.customer?.site;
-    } else {
-      const customerResult = await client.getCustomerByPhone(normalizedPhone);
-      customer = customerResult.customer;
-      customerSite = customerResult.site;
+    try {
+      if (customerId) {
+        console.log('Getting customer by ID:', customerId);
+        const customerResult = await client.getCustomer(customerId);
+        customer = customerResult.customer;
+        customerSite = customerResult.site;
+      } else {
+        console.log('Getting customer by phone:', normalizedPhone);
+        const customerResult = await client.getCustomerByPhone(normalizedPhone);
+        customer = customerResult.customer;
+        customerSite = customerResult.site;
+      }
+    } catch (err) {
+      console.log('Error finding customer:', err);
+      return res.status(404).json({ error: 'Клиент не найден: ' + err });
     }
     
     if (!customer) {
@@ -74,12 +81,14 @@ app.all('/webhook/vykup', async (req, res) => {
     }
     
     const customerIdCRM = customer.id;
+    customerSite = customerSite || customer.site;
     console.log('Found customer:', customerIdCRM, 'site:', customerSite);
     
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
     const limit = 100;
+    let ordersSite = null;
     
     while (true) {
       console.log('Fetching orders page:', page, 'with customerId filter:', customerIdCRM);
@@ -91,10 +100,14 @@ app.all('/webhook/vykup', async (req, res) => {
         }
       });
       
-      console.log('Orders result:', ordersResult);
+      console.log('Orders result:', ordersResult.pagination);
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
+      }
+      
+      if (!ordersSite && ordersResult.orders[0]?.site) {
+        ordersSite = ordersResult.orders[0].site;
       }
       
       for (const order of ordersResult.orders) {
@@ -111,6 +124,11 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
+    if (!customerSite && ordersSite) {
+      customerSite = ordersSite;
+      console.log('Using site from orders:', customerSite);
+    }
+    
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
     
     let vykupPercent = 0;
@@ -121,6 +139,7 @@ app.all('/webhook/vykup', async (req, res) => {
     }
     
     console.log('Vykup percent:', vykupPercent);
+    console.log('Customer site:', customerSite);
     
     const updateResult = await client.editCustomer(customerIdCRM, {
       vykup: vykupPercent
@@ -214,10 +233,10 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
             vykupPercent = 100;
           }
           
-          const customerSite = customer.site;
+          const custSite = customer.site;
           await client.editCustomer(customerId, {
             vykup: vykupPercent
-          }, customerSite);
+          }, custSite);
           
           updated++;
           console.log(`Updated customer ${customerId}: completed=${completedOrders}, canceled=${canceledOrders}, vykup=${vykupPercent}%`);

@@ -216,9 +216,13 @@ export class RetailCRMClient {
     return this.request("GET", "/customers", params);
   }
 
-  async getCustomer(id: number): Promise<any> {
-    const result = await this.request("GET", `/customers/${id}`);
-    return { customer: result.customer, site: result.customer?.site };
+  async getCustomer(id: number, site?: string): Promise<any> {
+    const params: Record<string, any> = {};
+    if (site) {
+      params.site = site;
+    }
+    const result = await this.request("GET", `/customers/${id}`, params);
+    return { customer: result.customer, site: site || result.customer?.site };
   }
 
   async createCustomer(customer: Record<string, any>): Promise<any> {
@@ -250,11 +254,13 @@ export class RetailCRMClient {
     }
     
     const customer = data.customers[0];
-    console.log('Found customer:', customer.id, 'site:', customer.site);
+    console.log('Found customer:', customer.id, 'site:', customer.site, 'phones:', customer.phones);
     return { customer, site: customer.site };
   }
 
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
+    console.log('editCustomer called. id:', id, 'site:', site);
+    
     const formData = new URLSearchParams();
     formData.append("customer", JSON.stringify(customer));
     
@@ -263,6 +269,8 @@ export class RetailCRMClient {
     if (site) {
       url.searchParams.append("site", site);
     }
+    
+    console.log('editCustomer URL:', url.toString());
     
     const response = await fetch(url.toString(), {
       method: "POST",
@@ -273,6 +281,7 @@ export class RetailCRMClient {
     });
     
     const data = await response.json();
+    console.log('editCustomer response:', JSON.stringify(data));
     
     if (!response.ok) {
       throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
