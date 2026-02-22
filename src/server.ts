@@ -101,33 +101,32 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const customerIdCRM = customer.id;
     customerSite = customerSite || customer.site;
-    console.log('Found customer:', customerIdCRM, 'site:', customerSite);
+    const customerEmail = customer.email;
+    console.log('Found customer:', customerIdCRM, 'site:', customerSite, 'email:', customerEmail);
+    
+    if (!customerEmail) {
+      return res.status(400).json({ error: 'У клиента нет email' });
+    }
     
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
-    const limit = 100;
-    let ordersSite = null;
+    const limit = 20;
     
     while (true) {
-      console.log('Fetching orders page:', page, 'with customerId filter:', customerIdCRM);
+      console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
       const ordersResult = await client.getOrders({
-        limit: 100,
+        limit,
         page: Number(page),
         filter: {
-          customerId: customerIdCRM
+          email: customerEmail
         }
       });
       
       console.log('Orders result:', ordersResult.pagination);
-      console.log('First 3 orders statuses:', ordersResult.orders?.slice(0, 3).map((o: any) => ({ status: o.status, number: o.number })));
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
-      }
-      
-      if (!ordersSite && ordersResult.orders[0]?.site) {
-        ordersSite = ordersResult.orders[0].site;
       }
       
       for (const order of ordersResult.orders) {
@@ -144,16 +143,11 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
-    if (!customerSite && ordersSite) {
-      customerSite = ordersSite;
-      console.log('Using site from orders:', customerSite);
-    }
-    
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
     
     let vykupPercent = 0;
     if (canceledOrders > 0) {
-      vykupPercent = Math.round((completedOrders / canceledOrders) * 100);
+      vykupPercent = Math.ceil((completedOrders / canceledOrders) * 100);
     } else if (completedOrders > 0) {
       vykupPercent = 100;
     }
