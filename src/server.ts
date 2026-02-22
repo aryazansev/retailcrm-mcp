@@ -31,11 +31,12 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Query:', JSON.stringify(req.query));
     
     const bodyPhone = req.body?.phone || req.body?.['phone'] || req.body?.customer?.phones?.[0]?.number || req.query?.phone;
-    const bodyCustomerId = req.body?.customerId || req.body?.['customerId'] || req.query?.customerId;
+    const bodyCustomerId = req.body?.customerId || req.body?.['customerId'] || req.body?.customer?.id || req.body?.order?.customer?.id || req.query?.customerId;
     const queryPhone = req.query?.phone as string;
     const queryCustomerId = req.query?.customerId as string;
     
     const phone = bodyPhone || queryPhone;
+    let customerId = bodyCustomerId || queryCustomerId ? Number(bodyCustomerId || queryCustomerId) : null;
     let normalizedPhone = phone;
     if (normalizedPhone) {
       normalizedPhone = normalizedPhone.replace(/\D/g, '');
@@ -43,8 +44,6 @@ app.all('/webhook/vykup', async (req, res) => {
         normalizedPhone = '7' + normalizedPhone;
       }
     }
-    const customerIdRaw = bodyCustomerId || queryCustomerId;
-    const customerId = customerIdRaw ? Number(customerIdRaw) : null;
     
     if (!phone && !customerId) {
       return res.status(400).json({ error: 'Требуется phone или customerId (в теле или query string: ?phone=... или ?customerId=...)' });
