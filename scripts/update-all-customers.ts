@@ -6,7 +6,7 @@ const RETAILCRM_URL = process.env.RETAILCRM_URL || 'https://ashrussia.retailcrm.
 const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || 'UaINijPrU0CMzhX8icKlsDLNC0wVGXZ5';
 
 const MAX_CUSTOMERS = parseInt(process.env.MAX_CUSTOMERS) || 100;
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 20;
 
 async function request(endpoint, params = {}) {
   const url = new URL(`${RETAILCRM_URL}/api/v5${endpoint}`);
@@ -18,6 +18,7 @@ async function request(endpoint, params = {}) {
     }
   });
 
+  console.log('API Request:', url.toString());
   const response = await fetch(url.toString());
   const data = await response.json();
   
@@ -75,39 +76,55 @@ async function getOrdersByEmail(email) {
 }
 
 async function updateCustomerVykup(customer, vykupPercent) {
-  if (!customer.externalId || !customer.site) {
-    console.log(`Skipping customer ${customer.id} - no externalId or site`);
-    return false;
-  }
+  // Need to get customer details to find site
+  const customerId = customer.id;
+  const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
   
-  const url = new URL(`${RETAILCRM_URL}/api/v5/customers/${customer.externalId}/edit`);
-  url.searchParams.append('apiKey', RETAILCRM_API_KEY);
-  url.searchParams.append('by', 'externalId');
-  url.searchParams.append('site', customer.site);
-  
-  const body = JSON.stringify({
-    customer: {
-      customFields: {
-        vykup: vykupPercent
+  for (const site of sites) {
+    try {
+      const url = new URL(`${RETAILCRM_URL}/api/v5/customers/${customerId}`);
+      url.searchParams.append('apiKey', RETAILCRM_API_KEY);
+      url.searchParams.append('site', site);
+      
+      const response = await fetch(url.toString());
+      const data = await response.json();
+      
+      if (data.customer) {
+        // Found customer with this site
+        const editUrl = new URL(`${RETAILCRM_URL}/api/v5/customers/${customerId}/edit`);
+        editUrl.searchParams.append('apiKey', RETAILCRM_API_KEY);
+        editUrl.searchParams.append('site', site);
+        
+        const body = JSON.stringify({
+          customer: {
+            customFields: {
+              vykup: vykupPercent
+            }
+          }
+        });
+        
+        const editResponse = await fetch(editUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body
+        });
+        
+        const editData = await editResponse.json();
+        
+        if (editResponse.ok && editData.success !== false) {
+          return true;
+        }
+        
+        console.log(`Failed to update customer ${customerId} with site ${site}:`, editData.errorMsg);
       }
+    } catch (e) {
+      console.log(`Error with site ${site}:`, e.message);
     }
-  });
-  
-  const response = await fetch(url.toString(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body
-  });
-  
-  const data = await response.json();
-  
-  if (response.ok && data.success !== false) {
-    return true;
   }
   
-  console.log(`Failed to update customer ${customer.id}:`, data.errorMsg);
+  console.log(`Skipping customer ${customerId} - could not find site`);
   return false;
 }
 
