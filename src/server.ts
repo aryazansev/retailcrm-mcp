@@ -46,11 +46,13 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Parsed: phone=', phone, 'customerId=', customerId, 'orderId=', orderIdNum);
     
     let normalizedPhone = phone;
-    if (normalizedPhone) {
+    if (normalizedPhone && typeof normalizedPhone === 'string') {
       normalizedPhone = normalizedPhone.replace(/\D/g, '');
       if (!normalizedPhone.startsWith('7')) {
         normalizedPhone = '7' + normalizedPhone;
       }
+    } else {
+      normalizedPhone = null;
     }
     
     if (!normalizedPhone && !customerId && !orderIdNum) {
