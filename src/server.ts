@@ -48,6 +48,8 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
     
+    console.log('Looking for customer. Phone:', phone, 'CustomerId:', customerId);
+    
     let customer;
     if (customerId) {
       const customerResult = await client.getCustomer(customerId);
@@ -62,6 +64,7 @@ app.all('/webhook/vykup', async (req, res) => {
     }
     
     const customerIdCRM = customer.id;
+    console.log('Found customer:', customerIdCRM);
     
     let page = 1;
     let completedOrders = 0;
@@ -69,6 +72,7 @@ app.all('/webhook/vykup', async (req, res) => {
     const limit = 100;
     
     while (true) {
+      console.log('Fetching orders page:', page);
       const ordersResult = await client.getOrders({
         limit,
         page,
@@ -76,6 +80,8 @@ app.all('/webhook/vykup', async (req, res) => {
           customer: customerIdCRM
         }
       });
+      
+      console.log('Orders result:', ordersResult);
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
@@ -95,12 +101,16 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
+    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
+    
     let vykupPercent = 0;
     if (canceledOrders > 0) {
       vykupPercent = Math.round((completedOrders / canceledOrders) * 100);
     } else if (completedOrders > 0) {
       vykupPercent = 100;
     }
+    
+    console.log('Vykup percent:', vykupPercent);
     
     const updateResult = await client.editCustomer(customerIdCRM, {
       vykup: vykupPercent
