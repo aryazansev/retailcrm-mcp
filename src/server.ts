@@ -31,6 +31,10 @@ app.all('/webhook/vykup', async (req, res) => {
     const queryCustomerId = req.query?.customerId as string;
     
     const phone = bodyPhone || queryPhone;
+    let normalizedPhone = phone;
+    if (normalizedPhone && !normalizedPhone.startsWith('+')) {
+      normalizedPhone = '+' + normalizedPhone;
+    }
     const customerIdRaw = bodyCustomerId || queryCustomerId;
     const customerId = customerIdRaw ? Number(customerIdRaw) : null;
     
@@ -48,14 +52,14 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
     
-    console.log('Looking for customer. Phone:', phone, 'CustomerId:', customerId);
+    console.log('Looking for customer. Phone:', normalizedPhone, 'CustomerId:', customerId);
     
     let customer;
     if (customerId) {
       const customerResult = await client.getCustomer(customerId);
       customer = customerResult.customer;
     } else {
-      const customerResult = await client.getCustomerByPhone(phone);
+      const customerResult = await client.getCustomerByPhone(normalizedPhone);
       customer = customerResult.customer;
     }
     

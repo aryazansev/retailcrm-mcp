@@ -230,7 +230,7 @@ export class RetailCRMClient {
     const result = await this.request("GET", "/customers", {
       limit: 1,
       page: 1,
-      "filter[phone]": phone,
+      "filter[phones]": phone,
     });
     if (!result.customers || result.customers.length === 0) {
       throw new Error("Customer not found");
