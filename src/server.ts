@@ -193,12 +193,13 @@ app.all('/webhook/vykup', async (req, res) => {
     
     console.log('Vykup percent:', vykupPercent);
     console.log('Customer site:', customerSite);
-    console.log('Customer externalId:', customer.externalId);
+    console.log('Customer externalId:', customer?.externalId);
     
-    let updateResult;
+    let updateResult = null;
+    let updateError = null;
     
     // First try with externalId if available
-    if (customer.externalId) {
+    if (customer?.externalId) {
       console.log('Trying edit by externalId:', customer.externalId, 'site:', customerSite);
       try {
         updateResult = await client.editCustomerByExternalId(customer.externalId, customerSite, {
@@ -213,7 +214,7 @@ app.all('/webhook/vykup', async (req, res) => {
           updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
         } catch (e2) {
           console.log('Failed edit by id:', e2);
-          throw e2;
+          updateError = e2 instanceof Error ? e2.message : 'Update failed';
         }
       }
     } else {
@@ -221,19 +222,20 @@ app.all('/webhook/vykup', async (req, res) => {
       try {
         updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
       } catch (e) {
-        console.log('Failed edit by id:', e);
-        throw e;
+        console.log('Failed to update customer:', e);
+        updateError = e instanceof Error ? e.message : 'Update failed';
       }
     }
     
     res.json({
       success: true,
       customerId: customerIdCRM,
-      phone: customer.phones?.[0]?.number || phone,
+      phone: customer?.phones?.[0]?.number || phone,
       completedOrders,
       canceledOrders,
       vykupPercent,
-      updated: updateResult.success
+      updated: updateResult?.success || false,
+      updateError
     });
     
   } catch (error) {
