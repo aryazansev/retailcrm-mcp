@@ -132,7 +132,7 @@ app.all('/webhook/vykup', async (req, res) => {
       for (const order of ordersResult.orders) {
         if (order.status === 'completed' || order.status === 'complete' || order.status === 'compled') {
           completedOrders++;
-        } else if (order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled') {
+        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
           canceledOrders++;
         }
       }
@@ -259,7 +259,7 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
             for (const order of ordersResult.orders) {
               if (order.status === 'completed' || order.status === 'complete' || order.status === 'compled') {
                 completedOrders++;
-              } else if (order.status === 'cancel' || order.status === 'canceled' || order.status === 'cancelled') {
+              } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
                 canceledOrders++;
               }
             }
