@@ -12,11 +12,17 @@ RUN npm ci
 # Copy source code
 COPY src/ ./src/
 
+# Copy scripts
+COPY scripts/ ./scripts/
+
 # Build the project
 RUN npm run build
 
 # Production stage
 FROM node:18-alpine AS production
+
+# Install bash for scripts
+RUN apk add --no-cache bash curl
 
 # Set working directory
 WORKDIR /app
@@ -29,6 +35,7 @@ RUN npm install --production && npm cache clean --force
 
 # Copy built files from builder stage
 COPY --from=builder /app/build ./build
+COPY --from=builder /app/scripts ./scripts
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
