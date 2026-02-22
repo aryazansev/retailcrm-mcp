@@ -288,7 +288,7 @@ export class RetailCRMClient {
     }
     
     const customer = data.customers[0];
-    console.log('Found customer:', customer.id, 'site:', customer.site, 'externalId:', customer.externalId, 'phones:', customer.phones);
+    console.log('Found customer:', JSON.stringify(customer));
     return { customer, site: customer.site, externalId: customer.externalId };
   }
 

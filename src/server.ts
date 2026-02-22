@@ -160,20 +160,16 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Vykup percent:', vykupPercent);
     console.log('Customer site:', customerSite);
     
-    // Get customer with externalId
-    const customerRaw = await client.getCustomerByIdRaw(customerIdCRM);
-    console.log('Customer raw:', JSON.stringify(customerRaw));
-    
     let updateResult;
-    const extId = customerRaw?.customer?.externalId;
     
-    if (extId) {
-      console.log('Trying edit by externalId:', extId);
+    // First try with externalId if available
+    if (customer.externalId) {
+      console.log('Trying edit by externalId:', customer.externalId);
       try {
-        updateResult = await client.editCustomerByExternalId(extId, customerSite, {
+        updateResult = await client.editCustomerByExternalId(customer.externalId, customerSite, {
           vykup: vykupPercent
         });
-        console.log('Edit by externalId success:', updateResult);
+        console.log('Edit by externalId success');
       } catch (e) {
         console.log('Failed edit by externalId:', e);
         try {
@@ -184,7 +180,7 @@ app.all('/webhook/vykup', async (req, res) => {
         }
       }
     } else {
-      console.log('No externalId, trying edit by id with site');
+      console.log('No externalId, trying edit by id');
       try {
         updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
       } catch (e) {
