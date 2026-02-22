@@ -23,12 +23,18 @@ app.get('/health', (req, res) => {
 });
 
 // Webhook для расчета процента выкупа
-app.post('/webhook/vykup', async (req, res) => {
+app.all('/webhook/vykup', async (req, res) => {
   try {
-    const { phone, customerId, site } = req.body;
+    const bodyPhone = req.body?.phone;
+    const bodyCustomerId = req.body?.customerId;
+    const queryPhone = req.query?.phone as string;
+    const queryCustomerId = req.query?.customerId as string;
+    
+    const phone = bodyPhone || queryPhone;
+    const customerId = bodyCustomerId || queryCustomerId;
     
     if (!phone && !customerId) {
-      return res.status(400).json({ error: 'Требуется phone или customerId' });
+      return res.status(400).json({ error: 'Требуется phone или customerId (в теле или query string: ?phone=... или ?customerId=...)' });
     }
 
     const { RetailCRMClient } = await import('./client.js');
@@ -233,6 +239,9 @@ app.use(cors({
 
 // Parse JSON bodies
 app.use(express.json());
+
+// Parse query strings
+app.use(express.urlencoded({ extended: true }));
 
 // Root endpoint
 app.get('/', (req, res) => {
