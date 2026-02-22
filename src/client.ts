@@ -262,30 +262,40 @@ export class RetailCRMClient {
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     console.log('editCustomer called. id:', id, 'site:', site);
     
-    const formData = new URLSearchParams();
-    formData.append("customer", JSON.stringify(customer));
+    // Try different sites if the first one fails
+    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
     
-    // Always include site for this customer
-    const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${site}`;
-    
-    console.log('editCustomer URL:', url);
-    
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: formData.toString(),
-    });
-    
-    const data = await response.json();
-    console.log('editCustomer response:', JSON.stringify(data));
-    
-    if (!response.ok || data.success === false) {
-      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    for (const s of sitesToTry) {
+      try {
+        const formData = new URLSearchParams();
+        formData.append("customer", JSON.stringify(customer));
+        
+        const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}`;
+        
+        console.log('editCustomer trying URL:', url);
+        
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formData.toString(),
+        });
+        
+        const data = await response.json();
+        console.log('editCustomer response:', JSON.stringify(data));
+        
+        if (response.ok && data.success !== false) {
+          return data;
+        }
+        
+        console.log('Site', s, 'failed:', data.errorMsg);
+      } catch (e) {
+        console.log('Site', s, 'error:', e);
+      }
     }
     
-    return data;
+    throw new Error('Failed to edit customer with all sites');
   }
 
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {
