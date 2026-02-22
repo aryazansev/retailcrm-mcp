@@ -323,13 +323,23 @@ export class RetailCRMClient {
       }
     }
     
-    // Try with site
+    // Try with site - first try customFields format
     const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
     
     for (const s of sitesToTry) {
       try {
         const formData = new URLSearchParams();
-        formData.append("customer", JSON.stringify(customer));
+        // Try with customFields format first
+        if (customer.vykup !== undefined) {
+          const customerData = {
+            customFields: {
+              vykup: customer.vykup
+            }
+          };
+          formData.append("customer", JSON.stringify(customerData));
+        } else {
+          formData.append("customer", JSON.stringify(customer));
+        }
         
         const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}`;
         
