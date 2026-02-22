@@ -329,23 +329,24 @@ export class RetailCRMClient {
     for (const s of sitesToTry) {
       try {
         const formData = new URLSearchParams();
-        // Try with customFields format first
-        if (customer.vykup !== undefined) {
-          const customerData = {
-            customFields: {
-              vykup: customer.vykup
-            }
-          };
-          formData.append("customer", JSON.stringify(customerData));
-        } else {
-          formData.append("customer", JSON.stringify(customer));
-        }
+        
+        // Try both formats: customFields AND direct field
+        const vykupValue = (customer as any).vykup;
+        
+        // Format 1: customFields
+        let customerData: any = {
+          customFields: {
+            vykup: vykupValue
+          }
+        };
+        
+        formData.append("customer", JSON.stringify(customerData));
         
         const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}`;
         
-        console.log('editCustomer trying URL:', url);
+        console.log('editCustomer trying customFields:', url, JSON.stringify(customerData));
         
-        const response = await fetch(url, {
+        let response = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -353,14 +354,37 @@ export class RetailCRMClient {
           body: formData.toString(),
         });
         
-        const data = await response.json();
-        console.log('editCustomer response:', JSON.stringify(data));
+        let data = await response.json();
+        console.log('editCustomer customFields response:', JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
           return data;
         }
         
-        console.log('Site', s, 'failed:', data.errorMsg);
+        // Try format 2: direct field
+        console.log('Trying direct field format...');
+        customerData = { vykup: vykupValue };
+        formData.delete("customer");
+        formData.append("customer", JSON.stringify(customerData));
+        
+        console.log('editCustomer trying direct:', url, JSON.stringify(customerData));
+        
+        response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: formData.toString(),
+        });
+        
+        data = await response.json();
+        console.log('editCustomer direct response:', JSON.stringify(data));
+        
+        if (response.ok && data.success !== false) {
+          return data;
+        }
+        
+        console.log('Site', s, 'failed');
       } catch (e) {
         console.log('Site', s, 'error:', e);
       }
