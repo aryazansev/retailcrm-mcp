@@ -27,16 +27,24 @@ app.all('/webhook/vykup', async (req, res) => {
   try {
     console.log('Webhook received.');
     console.log('Body (raw):', JSON.stringify(req.body));
-    console.log('Body keys:', Object.keys(req.body || {}));
-    console.log('Query:', JSON.stringify(req.query));
     
-    const bodyPhone = req.body?.phone || req.body?.['phone'] || req.body?.customer?.phones?.[0]?.number || req.query?.phone;
-    const bodyCustomerId = req.body?.customerId || req.body?.['customerId'] || req.body?.customer?.id || req.body?.order?.customer?.id || req.query?.customerId;
-    const queryPhone = req.query?.phone as string;
-    const queryCustomerId = req.query?.customerId as string;
+    // Support multiple formats
+    const body = req.body || {};
+    const query = req.query || {};
+    
+    // Try to get orderId, customerId or phone
+    const orderId = body.orderId || body.order_id || query.orderId || query.order_id;
+    const bodyPhone = body.phone || query.phone;
+    const bodyCustomerId = body.customerId || body.customer_id || query.customerId || query.customer_id;
+    const queryPhone = query.phone as string;
+    const queryCustomerId = query.customerId as string;
     
     const phone = bodyPhone || queryPhone;
     let customerId = bodyCustomerId || queryCustomerId ? Number(bodyCustomerId || queryCustomerId) : null;
+    const orderIdNum = orderId ? Number(orderId) : null;
+    
+    console.log('Parsed: phone=', phone, 'customerId=', customerId, 'orderId=', orderIdNum);
+    
     let normalizedPhone = phone;
     if (normalizedPhone) {
       normalizedPhone = normalizedPhone.replace(/\D/g, '');
@@ -45,10 +53,10 @@ app.all('/webhook/vykup', async (req, res) => {
       }
     }
     
-    if (!phone && !customerId) {
-      return res.status(400).json({ error: 'Требуется phone или customerId (в теле или query string: ?phone=... или ?customerId=...)' });
+    if (!normalizedPhone && !customerId && !orderIdNum) {
+      return res.status(400).json({ error: 'Требуется phone, customerId или orderId' });
     }
-
+    
     const { RetailCRMClient } = await import('./client.js');
     const RETAILCRM_URL = process.env.RETAILCRM_URL || '';
     const RETAILCRM_API_KEY = process.env.RETAILCRM_API_KEY || '';
@@ -59,10 +67,30 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
     
-    console.log('Looking for customer. Phone:', normalizedPhone, 'CustomerId:', customerId);
+    console.log('Looking for customer. Phone:', normalizedPhone, 'CustomerId:', customerId, 'OrderId:', orderIdNum);
     
     let customer;
     let customerSite = null;
+    
+    // If orderId provided, get order first to find customer
+    if (orderIdNum && !normalizedPhone && !customerId) {
+      console.log('Getting order by ID:', orderIdNum);
+      try {
+        const orderResult = await client.getOrder(orderIdNum);
+        if (orderResult.order?.customer) {
+          // Get customer from order
+          if (typeof orderResult.order.customer === 'object') {
+            customer = orderResult.order.customer;
+            customerId = customer.id;
+          } else {
+            customerId = Number(orderResult.order.customer);
+          }
+        }
+      } catch (e) {
+        console.log('Error getting order:', e);
+      }
+    }
+    
     try {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
