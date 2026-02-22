@@ -222,6 +222,7 @@ export class RetailCRMClient {
       params.site = site;
     }
     const result = await this.request("GET", `/customers/${id}`, params);
+    console.log('getCustomer result:', JSON.stringify(result));
     return { customer: result.customer, site: site || result.customer?.site };
   }
 
@@ -264,8 +265,8 @@ export class RetailCRMClient {
     const formData = new URLSearchParams();
     formData.append("customer", JSON.stringify(customer));
     
-    // Try without site first
-    let url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}`;
+    // Always include site for this customer
+    const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${site}`;
     
     console.log('editCustomer URL:', url);
     
@@ -281,24 +282,6 @@ export class RetailCRMClient {
     console.log('editCustomer response:', JSON.stringify(data));
     
     if (!response.ok || data.success === false) {
-      // Try with site if first attempt failed
-      if (site) {
-        console.log('Retrying with site...');
-        url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${site}`;
-        const response2 = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: formData.toString(),
-        });
-        const data2 = await response2.json();
-        console.log('editCustomer response with site:', JSON.stringify(data2));
-        
-        if (response2.ok && data2.success !== false) {
-          return data2;
-        }
-      }
       throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
     }
     
