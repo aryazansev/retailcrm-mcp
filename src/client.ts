@@ -217,7 +217,8 @@ export class RetailCRMClient {
   }
 
   async getCustomer(id: number): Promise<any> {
-    return this.request("GET", `/customers/${id}`);
+    const result = await this.request("GET", `/customers/${id}`);
+    return { customer: result.customer, site: result.customer?.site };
   }
 
   async createCustomer(customer: Record<string, any>): Promise<any> {
@@ -229,21 +230,14 @@ export class RetailCRMClient {
   }
 
   async getCustomerByPhone(phone: string): Promise<any> {
-    console.log('getCustomerByPhone called with phone:', phone);
-    
-    // Try different filter formats - use query string instead
     const url = new URL(`${this.baseUrl}/api/v5/customers`);
     url.searchParams.append("apiKey", this.apiKey);
     url.searchParams.append("limit", "20");
     url.searchParams.append("page", "1");
     url.searchParams.append("filter[phone]", phone);
     
-    console.log('Fetching customers from:', url.toString());
-    
     const response = await fetch(url.toString());
     const data = await response.json();
-    
-    console.log('Customers response:', JSON.stringify(data));
     
     if (!response.ok) {
       throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
@@ -253,15 +247,19 @@ export class RetailCRMClient {
       throw new Error("Customer not found");
     }
     
-    return { customer: data.customers[0] };
+    const customer = data.customers[0];
+    return { customer, site: customer.site };
   }
 
-  async editCustomer(id: number, customer: Record<string, any>): Promise<any> {
+  async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     const formData = new URLSearchParams();
     formData.append("customer", JSON.stringify(customer));
     
     const url = new URL(`${this.baseUrl}/api/v5/customers/${id}/edit`);
     url.searchParams.append("apiKey", this.apiKey);
+    if (site) {
+      url.searchParams.append("site", site);
+    }
     
     const response = await fetch(url.toString(), {
       method: "POST",

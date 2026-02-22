@@ -55,12 +55,15 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Looking for customer. Phone:', normalizedPhone, 'CustomerId:', customerId);
     
     let customer;
+    let customerSite = null;
     if (customerId) {
       const customerResult = await client.getCustomer(customerId);
       customer = customerResult.customer;
+      customerSite = customerResult.customer?.site;
     } else {
       const customerResult = await client.getCustomerByPhone(normalizedPhone);
       customer = customerResult.customer;
+      customerSite = customerResult.site;
     }
     
     if (!customer) {
@@ -68,7 +71,7 @@ app.all('/webhook/vykup', async (req, res) => {
     }
     
     const customerIdCRM = customer.id;
-    console.log('Found customer:', customerIdCRM);
+    console.log('Found customer:', customerIdCRM, 'site:', customerSite);
     
     let page = 1;
     let completedOrders = 0;
@@ -118,7 +121,7 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const updateResult = await client.editCustomer(customerIdCRM, {
       vykup: vykupPercent
-    });
+    }, customerSite);
     
     res.json({
       success: true,
@@ -208,9 +211,10 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
             vykupPercent = 100;
           }
           
+          const customerSite = customer.site;
           await client.editCustomer(customerId, {
             vykup: vykupPercent
-          });
+          }, customerSite);
           
           updated++;
           console.log(`Updated customer ${customerId}: completed=${completedOrders}, canceled=${canceledOrders}, vykup=${vykupPercent}%`);
