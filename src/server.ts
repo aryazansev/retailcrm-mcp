@@ -158,20 +158,24 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Vykup percent:', vykupPercent);
     console.log('Customer site:', customerSite);
     
-    // Try to get customer raw to find externalId
-    try {
-      const customerRaw = await client.getCustomerByIdRaw(customerIdCRM);
-      console.log('Customer raw:', JSON.stringify(customerRaw));
-      if (customerRaw?.customer?.externalId) {
-        console.log('Found externalId:', customerRaw.customer.externalId);
-      }
-    } catch (e) {
-      console.log('Error getting raw customer:', e);
-    }
+    // Get customer with externalId
+    const customerRaw = await client.getCustomerByIdRaw(customerIdCRM);
+    console.log('Customer raw:', JSON.stringify(customerRaw));
     
-    const updateResult = await client.editCustomer(customerIdCRM, {
-      vykup: vykupPercent
-    }, customerSite);
+    let updateResult;
+    if (customerRaw?.customer?.externalId) {
+      console.log('Trying edit by externalId:', customerRaw.customer.externalId);
+      try {
+        updateResult = await client.editCustomerByExternalId(customerRaw.customer.externalId, customerSite, {
+          vykup: vykupPercent
+        });
+      } catch (e) {
+        console.log('Failed edit by externalId:', e);
+        updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+      }
+    } else {
+      updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+    }
     
     res.json({
       success: true,

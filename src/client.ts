@@ -314,15 +314,16 @@ export class RetailCRMClient {
   }
 
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {
+    console.log('editCustomerByExternalId called. externalId:', externalId, 'site:', site);
+    
     const formData = new URLSearchParams();
     formData.append("customer", JSON.stringify(customer));
     
-    const url = new URL(`${this.baseUrl}/api/v5/customers/${externalId}/edit`);
-    url.searchParams.append("apiKey", this.apiKey);
-    url.searchParams.append("by", "externalId");
-    url.searchParams.append("site", site);
+    const url = `${this.baseUrl}/api/v5/customers/${externalId}/edit?apiKey=${this.apiKey}&by=externalId&site=${site}`;
     
-    const response = await fetch(url.toString(), {
+    console.log('editCustomerByExternalId URL:', url);
+    
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -331,13 +332,10 @@ export class RetailCRMClient {
     });
     
     const data = await response.json();
+    console.log('editCustomerByExternalId response:', JSON.stringify(data));
     
-    if (!response.ok) {
+    if (!response.ok || data.success === false) {
       throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
-    }
-    
-    if (data.success === false) {
-      throw new Error(`API Error: ${data.errorMsg || "Unknown error"}`);
     }
     
     return data;
