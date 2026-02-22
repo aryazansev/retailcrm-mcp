@@ -120,6 +120,7 @@ app.all('/webhook/vykup', async (req, res) => {
       });
       
       console.log('Orders result:', ordersResult.pagination);
+      console.log('First 3 orders statuses:', ordersResult.orders?.slice(0, 3).map((o: any) => ({ status: o.status, number: o.number })));
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
