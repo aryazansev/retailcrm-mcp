@@ -292,7 +292,7 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
     let updated = 0;
     let errors = 0;
     const limit = 50;
-    const maxCustomers = parseInt(req.body.maxCustomers) || 100;
+    const maxCustomers = parseInt(req.query.maxCustomers as string) || parseInt(req.body?.maxCustomers as string) || 100;
     
     while (updated < maxCustomers) {
       const customersResult = await client.getCustomers({

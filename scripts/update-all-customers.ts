@@ -29,35 +29,16 @@ async function request(endpoint, params = {}) {
   return data;
 }
 
-async function getCustomerByPhone(phone) {
-  const phoneClean = phone.replace(/\D/g, '');
-  
-  const url = new URL(`${RETAILCRM_URL}/api/v5/customers`);
-  url.searchParams.append('apiKey', RETAILCRM_API_KEY);
-  url.searchParams.append('limit', '20');
-  url.searchParams.append('page', '1');
-  url.searchParams.append('filter[phone]', phoneClean);
-  
-  const response = await fetch(url.toString());
-  const data = await response.json();
-  
-  if (!data.customers || data.customers.length === 0) {
-    return null;
-  }
-  
-  return data.customers[0];
-}
-
-async function getOrdersByEmail(email) {
+async function getOrdersByCustomerId(customerId) {
   const orders = [];
   let page = 1;
-  const limit = 20;
+  const limit = 100;
   
   while (true) {
     const result = await request('/orders', {
       limit,
       page,
-      'filter[email]': email
+      'filter[customer]': customerId
     });
     
     if (!result.orders || result.orders.length === 0) {
@@ -75,56 +56,44 @@ async function getOrdersByEmail(email) {
   return orders;
 }
 
-async function updateCustomerVykup(customer, vykupPercent) {
-  // Need to get customer details to find site
-  const customerId = customer.id;
-  const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
+async function updateCustomerVykup(customerId, vykupPercent, site) {
+  const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
   
-  for (const site of sites) {
+  for (const s of sitesToTry) {
     try {
-      const url = new URL(`${RETAILCRM_URL}/api/v5/customers/${customerId}`);
+      const url = new URL(`${RETAILCRM_URL}/api/v5/customers/${customerId}/edit`);
       url.searchParams.append('apiKey', RETAILCRM_API_KEY);
-      url.searchParams.append('site', site);
+      url.searchParams.append('site', s);
       
-      const response = await fetch(url.toString());
+      const body = JSON.stringify({
+        customer: {
+          customFields: {
+            vykup: vykupPercent
+          }
+        }
+      });
+      
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body
+      });
+      
       const data = await response.json();
       
-      if (data.customer) {
-        // Found customer with this site
-        const editUrl = new URL(`${RETAILCRM_URL}/api/v5/customers/${customerId}/edit`);
-        editUrl.searchParams.append('apiKey', RETAILCRM_API_KEY);
-        editUrl.searchParams.append('site', site);
-        
-        const body = JSON.stringify({
-          customer: {
-            customFields: {
-              vykup: vykupPercent
-            }
-          }
-        });
-        
-        const editResponse = await fetch(editUrl.toString(), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body
-        });
-        
-        const editData = await editResponse.json();
-        
-        if (editResponse.ok && editData.success !== false) {
-          return true;
-        }
-        
-        console.log(`Failed to update customer ${customerId} with site ${site}:`, editData.errorMsg);
+      if (response.ok && data.success !== false) {
+        return true;
       }
+      
+      console.log(`  Site ${s} failed:`, data.errorMsg);
     } catch (e) {
-      console.log(`Error with site ${site}:`, e.message);
+      console.log(`  Site ${s} error:`, e.message);
     }
   }
   
-  console.log(`Skipping customer ${customerId} - could not find site`);
+  console.log(`  Could not update customer ${customerId}`);
   return false;
 }
 
@@ -154,17 +123,12 @@ async function processAllCustomers() {
       processed++;
       
       try {
-        const email = customer.email;
+        const customerId = customer.id;
+        const customerSite = customer.site;
         
-        if (!email) {
-          console.log(`[${processed}] Customer ${customer.id}: No email, skipping`);
-          skipped++;
-          continue;
-        }
+        console.log(`[${processed}] Processing customer ${customerId} (${customer.firstName || ''} ${customer.lastName || ''})...`);
         
-        console.log(`[${processed}] Processing customer ${customer.id} (${customer.firstName} ${customer.lastName})...`);
-        
-        const orders = await getOrdersByEmail(email);
+        const orders = await getOrdersByCustomerId(customerId);
         
         if (!orders || orders.length === 0) {
           console.log(`  -> No orders, skipping`);
@@ -193,7 +157,7 @@ async function processAllCustomers() {
         console.log(`  -> Orders: ${orders.length}, Completed: ${completed}, Canceled: ${canceled}, Vykup: ${vykupPercent}%`);
         
         if (vykupPercent > 0) {
-          const success = await updateCustomerVykup(customer, vykupPercent);
+          const success = await updateCustomerVykup(customerId, vykupPercent, customerSite);
           if (success) {
             updated++;
             console.log(`  -> Updated!`);
@@ -216,7 +180,6 @@ async function processAllCustomers() {
     
     page++;
     
-    // Small delay to not overload API
     await new Promise(r => setTimeout(r, 500));
   }
   

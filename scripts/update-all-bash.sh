@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # RetailCRM Update All Customers Vykup Script
-# Run on Render as a job or locally
-
-set -e
 
 RETAILCRM_URL="${RETAILCRM_URL:-https://ashrussia.retailcrm.ru}"
 RETAILCRM_API_KEY="${RETAILCRM_API_KEY}"
@@ -31,72 +28,75 @@ api_request() {
     curl -s -X GET "$RETAILCRM_URL/api/v5$endpoint?apiKey=$RETAILCRM_API_KEY$params"
 }
 
-# Function to get customer by phone
-get_customer_by_phone() {
-    local phone="$1"
-    local phone_clean=$(echo "$phone" | tr -d '[:space:]' | sed 's/^+//' | sed 's/^/7/')
-    
-    api_request "/customers" "&limit=1&page=1&filter[phone]=$phone_clean"
-}
-
-# Function to get orders by email
-get_orders_by_email() {
-    local email="$1"
-    local page=1
-    local limit=20
-    local all_orders="["
-    
-    while true; do
-        local result=$(api_request "/orders" "&limit=$limit&page=$page&filter[email]=$email")
-        local orders_count=$(echo "$result" | grep -o '"id":' | wc -l)
-        
-        if [ "$orders_count" -eq 0 ]; then
-            break
-        fi
-        
-        # Remove first [ and last ] from result if not first page
-        if [ "$page" -eq 1 ]; then
-            all_orders="$result"
-        else
-            # Append orders
-            local new_orders=$(echo "$result" | sed 's/^\[//' | sed 's/\]$//')
-            all_orders="${all_orders%,$new_orders"
-        fi
-        
-        if [ "$orders_count" -lt "$limit" ]; then
-            break
-        fi
-        
-        page=$((page + 1))
-    done
-    
-    echo "$all_orders"
-}
-
-# Function to update customer vykup
+# Function to update customer vykup by internal ID
 update_customer_vykup() {
-    local external_id="$1"
+    local customer_id="$1"
     local site="$2"
     local vykup="$3"
     
-    curl -s -X POST "$RETAILCRM_URL/api/v5/customers/$external_id/edit?apiKey=$RETAILCRM_API_KEY&by=externalId&site=$site" \
+    curl -s -X POST "$RETAILCRM_URL/api/v5/customers/$customer_id/edit?apiKey=$RETAILCRM_API_KEY&site=$site" \
         -H "Content-Type: application/json" \
         -d "{\"customer\":{\"customFields\":{\"vykup\":$vykup}}}"
 }
 
-# Get total customers count
-echo "Getting customers list..."
-total_result=$(api_request "/customers" "&limit=1&page=1")
+# Build customer -> order counts map from orders
+echo "Step 1: Building order counts from all orders..."
+echo ""
+
+# Use temp files to store counts
+COMPLETED_FILE=$(mktemp)
+CANCELED_FILE=$(mktemp)
+
+# Initialize
+> "$COMPLETED_FILE"
+> "$CANCELED_FILE"
+
+# Get total orders
+orders_info=$(api_request "/orders" "&limit=20&page=1")
+total_orders=$(echo "$orders_info" | grep -o '"totalCount":[0-9]*' | grep -o '[0-9]*')
+total_pages=$(( (total_orders + 99) / 100 ))
+
+echo "Total orders: $total_orders"
+echo "Pages to process: $total_pages"
+echo ""
+
+# Process orders page by page
+for page in $(seq 1 $total_pages); do
+    if [ $((page % 100)) -eq 0 ]; then
+        echo "Processed $page / $total_pages pages..."
+    fi
+    
+    result=$(api_request "/orders" "&limit=100&page=$page")
+    
+    # Extract customer IDs and statuses
+    # Format: "id":123,"status":"completed","customer":{"type":"customer","id":456
+    echo "$result" | grep -o '"status":"[^"]*","customer":{"type":"customer","id":[0-9]*' | sed 's/"status":"//;s/","customer":{"type":"customer","id":/ /;s/"}//' | while read -r status cid; do
+        if [ "$status" = "completed" ]; then
+            echo "$cid" >> "$COMPLETED_FILE"
+        elif [ "$status" = "cancel-other" ] || [ "$status" = "vozvrat-im" ]; then
+            echo "$cid" >> "$CANCELED_FILE"
+        fi
+    done
+    
+    sleep 0.05
+done
+
+echo "Order counting complete!"
+echo ""
+
+# Count occurrences for each customer
+echo "Step 2: Counting orders per customer..."
+echo ""
+
+# Process customers
+echo "Getting customers..."
+total_result=$(api_request "/customers" "&limit=20&page=1")
 total_customers=$(echo "$total_result" | grep -o '"totalCount":[0-9]*' | grep -o '[0-9]*')
 
-if [ -z "$total_customers" ]; then
-    total_customers="$MAX_CUSTOMERS"
-fi
-
-echo "Total customers in CRM: $total_customers"
-echo "Will process up to: $MAX_CUSTOMERS"
+echo "Total customers: $total_customers"
+echo "Will process: $MAX_CUSTOMERS"
 echo ""
-echo "Starting processing..."
+echo "Starting updates..."
 echo "========================================="
 echo ""
 
@@ -106,99 +106,79 @@ skipped=0
 errors=0
 page=1
 
-# Process customers in batches
+# Process customers
 while [ "$processed" -lt "$MAX_CUSTOMERS" ]; do
-    echo "--- Page $page ---"
-    
     result=$(api_request "/customers" "&limit=20&page=$page")
     
-    # Check if we have customers
     if ! echo "$result" | grep -q '"id":'; then
-        echo "No more customers found."
         break
     fi
     
-    # Extract customer IDs
-    customer_ids=$(echo "$result" | grep -o '"id":[0-9]*' | grep -o '[0-9]*')
-    
-    for customer_id in $customer_ids; do
+    # Extract customer IDs and sites
+    echo "$result" | grep -o '"id":[0-9]*,"isContact":[^,]*,"createdAt":"[^"]*","vip":[^,]*,"bad":[^,]*,"site":"[^"]*"' | while read -r line; do
         processed=$((processed + 1))
         
         if [ "$processed" -gt "$MAX_CUSTOMERS" ]; then
             break
         fi
         
-        echo -n "[$processed] Customer ID $customer_id: "
+        customer_id=$(echo "$line" | grep -o '"id":[0-9]*' | grep -o '[0-9]*')
+        site=$(echo "$line" | grep -o '"site":"[^"]*"' | sed 's/"site":"//;s/"//')
         
-        # Get customer details
-        customer_info=$(api_request "/customers/$customer_id")
-        
-        # Check if customer has externalId and site
-        external_id=$(echo "$customer_info" | grep -o '"externalId":"[^"]*"' | sed 's/"externalId":"//;s/"$//' | head -1)
-        site=$(echo "$customer_info" | grep -o '"site":"[^"]*"' | sed 's/"site":"//;s/"$//' | head -1)
-        email=$(echo "$customer_info" | grep -o '"email":"[^"]*"' | sed 's/"email":"//;s/"$//' | head -1)
-        name=$(echo "$customer_info" | grep -o '"firstName":"[^"]*"' | sed 's/"firstName":"//;s/"$//' | head -1)
-        lastname=$(echo "$customer_info" | grep -o '"lastName":"[^"]*"' | sed 's/"lastName":"//;s/"$//' | head -1)
-        
-        if [ -z "$email" ]; then
-            echo "No email, skipping"
+        if [ -z "$site" ]; then
+            echo "[$processed] Customer $customer_id: No site, skipping"
             skipped=$((skipped + 1))
-            continue
+            return
         fi
         
-        if [ -z "$external_id" ] || [ -z "$site" ]; then
-            echo "No externalId or site, skipping"
+        echo -n "[$processed] Customer $customer_id (site: $site): "
+        
+        # Count orders for this customer
+        completed=$(grep -c "^$customer_id$" "$COMPLETED_FILE" 2>/dev/null || echo "0")
+        canceled=$(grep -c "^$customer_id$" "$CANCELED_FILE" 2>/dev/null || echo "0")
+        
+        if [ "$completed" -eq 0 ] && [ "$canceled" -eq 0 ]; then
+            echo "No orders, skipping"
             skipped=$((skipped + 1))
-            continue
+            return
         fi
         
-        echo -n "($name $lastname) "
-        
-        # Get orders by email
-        orders_result=$(api_request "/orders" "&limit=100&page=1&filter[email]=$email")
-        
-        # Count completed and canceled
-        completed=$(echo "$orders_result" | grep -o '"status":"completed"' | wc -l | tr -d ' ')
-        canceled=$(echo "$orders_result" | grep -o '"status":"cancel-other"' | wc -l | tr -d ' ')
-        vozvrat=$(echo "$orders_result" | grep -o '"status":"vozvrat-im"' | wc -l | tr -d ' ')
-        
-        total_canceled=$((canceled + vozvrat))
-        
-        if [ "$total_canceled" -eq 0 ]; then
+        if [ "$canceled" -eq 0 ]; then
             if [ "$completed" -gt 0 ]; then
                 vykup=100
             else
                 vykup=0
             fi
         else
-            vykup=$(( (completed * 100 + total_canceled - 1) / total_canceled ))  # ceil
+            vykup=$(( (completed * 100 + canceled - 1) / canceled ))
         fi
         
-        echo "Orders: completed=$completed, canceled=$total_canceled, vykup=$vykup%"
+        echo "completed=$completed, canceled=$canceled, vykup=$vykup%"
         
-        # Update customer
         if [ "$vykup" -gt 0 ]; then
-            update_result=$(update_customer_vykup "$external_id" "$site" "$vykup")
+            update_result=$(update_customer_vykup "$customer_id" "$site" "$vykup")
             
             if echo "$update_result" | grep -q '"success":true'; then
                 updated=$((updated + 1))
                 echo "  -> Updated!"
             else
-                echo "  -> Error updating"
+                echo "  -> Error"
                 errors=$((errors + 1))
             fi
         else
             skipped=$((skipped + 1))
         fi
         
-        # Small delay to not overload API
-        sleep 0.3
+        sleep 0.2
     done
     
     page=$((page + 1))
-    echo ""
 done
 
+# Cleanup
+rm -f "$COMPLETED_FILE" "$CANCELED_FILE"
+
+echo ""
 echo "========================================="
 echo "  SUMMARY"
 echo "========================================="
