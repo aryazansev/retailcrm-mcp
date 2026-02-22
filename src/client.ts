@@ -226,6 +226,21 @@ export class RetailCRMClient {
     return { customer: result.customer, site: site || result.customer?.site };
   }
 
+  async getCustomerByIdRaw(id: number): Promise<any> {
+    // Try without site first
+    try {
+      const url = `${this.baseUrl}/api/v5/customers/${id}?apiKey=${this.apiKey}`;
+      console.log('getCustomerByIdRaw URL:', url);
+      const response = await fetch(url);
+      const data = await response.json();
+      console.log('getCustomerByIdRaw response:', JSON.stringify(data));
+      return data;
+    } catch (e) {
+      console.log('getCustomerByIdRaw error:', e);
+      return null;
+    }
+  }
+
   async createCustomer(customer: Record<string, any>): Promise<any> {
     return this.request("POST", "/customers/create", undefined, { customer });
   }

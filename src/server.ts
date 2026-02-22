@@ -158,6 +158,17 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Vykup percent:', vykupPercent);
     console.log('Customer site:', customerSite);
     
+    // Try to get customer raw to find externalId
+    try {
+      const customerRaw = await client.getCustomerByIdRaw(customerIdCRM);
+      console.log('Customer raw:', JSON.stringify(customerRaw));
+      if (customerRaw?.customer?.externalId) {
+        console.log('Found externalId:', customerRaw.customer.externalId);
+      }
+    } catch (e) {
+      console.log('Error getting raw customer:', e);
+    }
+    
     const updateResult = await client.editCustomer(customerIdCRM, {
       vykup: vykupPercent
     }, customerSite);
