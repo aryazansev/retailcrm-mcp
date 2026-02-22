@@ -143,43 +143,74 @@ app.all('/webhook/vykup', async (req, res) => {
     const customerEmail = customer.email;
     console.log('Found customer:', customerIdCRM, 'site:', customerSite, 'email:', customerEmail);
     
-    if (!customerEmail) {
-      return res.status(400).json({ error: 'У клиента нет email' });
-    }
-    
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
     const limit = 20;
     
-    while (true) {
-      console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
-      const ordersResult = await client.getOrders({
-        limit,
-        page: Number(page),
-        filter: {
-          email: customerEmail
+    // Get orders by customerId if no email
+    if (!customerEmail) {
+      console.log('No email, using customerId to search orders:', customerIdCRM);
+      
+      while (true) {
+        const ordersResult = await client.getOrders({
+          limit,
+          page: Number(page),
+          filter: {
+            customerId: customerIdCRM
+          }
+        });
+        
+        console.log('Orders result:', ordersResult.pagination);
+        
+        if (!ordersResult.orders || ordersResult.orders.length === 0) {
+          break;
         }
-      });
-      
-      console.log('Orders result:', ordersResult.pagination);
-      
-      if (!ordersResult.orders || ordersResult.orders.length === 0) {
-        break;
-      }
-      
-      for (const order of ordersResult.orders) {
-        if (order.status === 'completed') {
-          completedOrders++;
-        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-          canceledOrders++;
+        
+        for (const order of ordersResult.orders) {
+          if (order.status === 'completed') {
+            completedOrders++;
+          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+            canceledOrders++;
+          }
         }
+        
+        if (ordersResult.orders.length < limit) {
+          break;
+        }
+        page++;
       }
-      
-      if (ordersResult.orders.length < limit) {
-        break;
+    } else {
+      // Original flow - get orders by email
+      while (true) {
+        console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
+        const ordersResult = await client.getOrders({
+          limit,
+          page: Number(page),
+          filter: {
+            email: customerEmail
+          }
+        });
+        
+        console.log('Orders result:', ordersResult.pagination);
+        
+        if (!ordersResult.orders || ordersResult.orders.length === 0) {
+          break;
+        }
+        
+        for (const order of ordersResult.orders) {
+          if (order.status === 'completed') {
+            completedOrders++;
+          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+            canceledOrders++;
+          }
+        }
+        
+        if (ordersResult.orders.length < limit) {
+          break;
+        }
+        page++;
       }
-      page++;
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
