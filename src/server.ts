@@ -25,11 +25,13 @@ app.get('/health', (req, res) => {
 // Webhook для расчета процента выкупа
 app.all('/webhook/vykup', async (req, res) => {
   try {
-    console.log('Webhook received. Body:', JSON.stringify(req.body));
+    console.log('Webhook received.');
+    console.log('Body (raw):', JSON.stringify(req.body));
+    console.log('Body keys:', Object.keys(req.body || {}));
     console.log('Query:', JSON.stringify(req.query));
     
-    const bodyPhone = req.body?.phone;
-    const bodyCustomerId = req.body?.customerId;
+    const bodyPhone = req.body?.phone || req.body?.['phone'] || req.body?.customer?.phones?.[0]?.number || req.query?.phone;
+    const bodyCustomerId = req.body?.customerId || req.body?.['customerId'] || req.query?.customerId;
     const queryPhone = req.query?.phone as string;
     const queryCustomerId = req.query?.customerId as string;
     
