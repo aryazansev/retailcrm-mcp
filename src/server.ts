@@ -87,6 +87,8 @@ app.all('/webhook/vykup', async (req, res) => {
         const customerResult = await client.getCustomerByPhone(normalizedPhone);
         customer = customerResult.customer;
         customerSite = customerResult.site;
+        const customerExternalId = customerResult.externalId;
+        console.log('Customer externalId from search:', customerExternalId);
       }
     } catch (err) {
       console.log('Error finding customer:', err);
@@ -163,18 +165,32 @@ app.all('/webhook/vykup', async (req, res) => {
     console.log('Customer raw:', JSON.stringify(customerRaw));
     
     let updateResult;
-    if (customerRaw?.customer?.externalId) {
-      console.log('Trying edit by externalId:', customerRaw.customer.externalId);
+    const extId = customerRaw?.customer?.externalId;
+    
+    if (extId) {
+      console.log('Trying edit by externalId:', extId);
       try {
-        updateResult = await client.editCustomerByExternalId(customerRaw.customer.externalId, customerSite, {
+        updateResult = await client.editCustomerByExternalId(extId, customerSite, {
           vykup: vykupPercent
         });
+        console.log('Edit by externalId success:', updateResult);
       } catch (e) {
         console.log('Failed edit by externalId:', e);
-        updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+        try {
+          updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+        } catch (e2) {
+          console.log('Failed edit by id:', e2);
+          throw e2;
+        }
       }
     } else {
-      updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+      console.log('No externalId, trying edit by id with site');
+      try {
+        updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
+      } catch (e) {
+        console.log('Failed edit by id:', e);
+        throw e;
+      }
     }
     
     res.json({

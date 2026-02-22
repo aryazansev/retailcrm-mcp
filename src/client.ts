@@ -288,8 +288,8 @@ export class RetailCRMClient {
     }
     
     const customer = data.customers[0];
-    console.log('Found customer:', customer.id, 'site:', customer.site, 'phones:', customer.phones);
-    return { customer, site: customer.site };
+    console.log('Found customer:', customer.id, 'site:', customer.site, 'externalId:', customer.externalId, 'phones:', customer.phones);
+    return { customer, site: customer.site, externalId: customer.externalId };
   }
 
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
