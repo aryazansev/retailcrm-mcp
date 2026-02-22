@@ -72,12 +72,12 @@ app.all('/webhook/vykup', async (req, res) => {
     const limit = 100;
     
     while (true) {
-      console.log('Fetching orders page:', page);
+      console.log('Fetching orders page:', page, 'with customerId filter:', customerIdCRM);
       const ordersResult = await client.getOrders({
-        limit,
-        page,
+        limit: 100,
+        page: Number(page),
         filter: {
-          customer: customerIdCRM
+          customerId: customerIdCRM
         }
       });
       
