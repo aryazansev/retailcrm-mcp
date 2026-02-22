@@ -45,13 +45,16 @@ app.all('/webhook/vykup', async (req, res) => {
     
     console.log('Parsed: phone=', phone, 'customerId=', customerId, 'orderId=', orderIdNum);
     
-    let normalizedPhone = phone;
-    if (normalizedPhone && typeof normalizedPhone === 'string') {
-      normalizedPhone = normalizedPhone.replace(/\D/g, '');
-      if (!normalizedPhone.startsWith('7')) {
-        normalizedPhone = '7' + normalizedPhone;
+    let normalizedPhone = null;
+    try {
+      if (phone && typeof phone === 'string') {
+        normalizedPhone = phone.replace(/\D/g, '');
+        if (!normalizedPhone.startsWith('7')) {
+          normalizedPhone = '7' + normalizedPhone;
+        }
       }
-    } else {
+    } catch (e) {
+      console.log('Error normalizing phone:', e);
       normalizedPhone = null;
     }
     
@@ -120,7 +123,7 @@ app.all('/webhook/vykup', async (req, res) => {
         }
       } else {
         console.log('Getting customer by phone:', normalizedPhone);
-        const customerResult = await client.getCustomerByPhone(normalizedPhone);
+        const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
         customer = customerResult.customer;
         customerSite = customerResult.site;
         const customerExternalId = customerResult.externalId;
