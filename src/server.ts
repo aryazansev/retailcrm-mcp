@@ -254,6 +254,7 @@ app.all('/webhook/vykup', async (req, res) => {
     res.json({
       success: true,
       customerId: customerIdCRM,
+      site: customerSite,
       phone: customer?.phones?.[0]?.number || phone,
       completedOrders,
       canceledOrders,
