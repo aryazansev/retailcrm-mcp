@@ -327,20 +327,20 @@ export class RetailCRMClient {
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     console.log('editCustomer called. id:', id, 'site:', site);
     
-    // Always use site if we have it
+    // RetailCRM API allows editing by internal id - site is optional but recommended
     const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
     for (const s of sitesToTry) {
       try {
-        const vykupValue = (customer as any).vykup;
+        const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
         
-        // Format: customFields with JSON (exact format that works)
         const customerData: any = {
           customFields: {
             vykup: vykupValue
           }
         };
         
+        // Use internal ID directly - no need for externalId
         const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}`;
         
         console.log('editCustomer POST to:', url);
