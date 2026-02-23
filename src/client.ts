@@ -304,7 +304,7 @@ export class RetailCRMClient {
     console.log('editCustomer called. id:', id, 'site:', site);
     
     // Always use site if we have it
-    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
+    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
     for (const s of sitesToTry) {
       try {
