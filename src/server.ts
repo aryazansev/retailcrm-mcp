@@ -174,19 +174,17 @@ app.all('/webhook/vykup', async (req, res) => {
     let completedOrders = 0;
     let canceledOrders = 0;
     
-    // Search orders across all sites (by iterating through pages)
-    const maxPages = 500; // Search first 500 pages to find all orders
+    // Get all orders using filter[customerId]
     let totalOrdersFound = 0;
+    const limit = 100;
     
-    // Search orders by iterating through pages
-    for (let page = 1; page <= maxPages; page++) {
-      if (page % 50 === 0) {
-        console.log('Searching page:', page);
-      }
-      
+    while (true) {
       const ordersResult = await client.getOrders({
-        limit: 100,
-        page
+        limit,
+        page,
+        filter: {
+          customerId: customerIdCRM
+        }
       });
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
@@ -194,37 +192,23 @@ app.all('/webhook/vykup', async (req, res) => {
       }
       
       for (const order of ordersResult.orders) {
-        // Check if this order belongs to our customer
-        let orderCustomerId = null;
-        if (order.customer) {
-          if (typeof order.customer === 'object') {
-            orderCustomerId = order.customer.id;
-          } else {
-            orderCustomerId = Number(order.customer);
-          }
-        }
-        
-        if (orderCustomerId === customerIdCRM) {
-          totalOrdersFound++;
-          if (order.status === 'completed') {
-            completedOrders++;
-          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-            canceledOrders++;
-          }
+        totalOrdersFound++;
+        if (order.status === 'completed') {
+          completedOrders++;
+        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+          canceledOrders++;
         }
       }
       
-      if (ordersResult.orders.length < 100) {
-        break;
-      }
-    }
-    
-    console.log('Total orders found:', totalOrdersFound);
+      console.log('Page', page, '- found:', ordersResult.orders.length, 'orders');
       
       if (ordersResult.orders.length < limit) {
         break;
       }
       page++;
+    }
+    
+    console.log('Total orders found:', totalOrdersFound);
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Total orders:', totalOrdersFound);
