@@ -325,7 +325,7 @@ export class RetailCRMClient {
   }
 
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
-    console.log('=== EDIT CUSTOMER ===');
+    console.log('=== EDIT CUSTOMER v2 ===');
     console.log('id:', id, 'site:', site);
     
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
