@@ -328,53 +328,55 @@ export class RetailCRMClient {
     console.log('editCustomer called. id:', id, 'site:', site);
     
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
+    console.log('vykupValue to set:', vykupValue);
     
-    const customerData: any = {
-      customFields: {
-        vykup: vykupValue
-      }
-    };
-    
-    // Try first without site (internal ID should work)
-    const urls = [
-      `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
+    // Try different approaches
+    const approaches = [
+      // Approach 1: JSON body with customFields
+      {
+        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
+        body: JSON.stringify({ customer: { customFields: { vykup: vykupValue } } }),
+        headers: { "Content-Type": "application/json" }
+      },
+      // Approach 2: form-urlencoded
+      {
+        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
+        body: new URLSearchParams({ customer: JSON.stringify({ customFields: { vykup: vykupValue } }) }),
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
+      },
+      // Approach 3: with site
+      {
+        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${site || 'ashrussia-ru'}&by=id`,
+        body: JSON.stringify({ customer: { customFields: { vykup: vykupValue } } }),
+        headers: { "Content-Type": "application/json" }
+      },
     ];
     
-    // Then try with each site
-    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-    for (const s of sitesToTry) {
-      urls.push(`${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`);
-    }
-    
-    for (const url of urls) {
+    for (let i = 0; i < approaches.length; i++) {
+      const { url, body, headers } = approaches[i];
       try {
-        console.log('editCustomer POST to:', url);
-        console.log('editCustomer body:', JSON.stringify({ customer: customerData }));
+        console.log(`Attempt ${i + 1}: POST to`, url);
+        console.log(`Attempt ${i + 1}: body:`, body instanceof URLSearchParams ? body.toString() : body);
         
         const response = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ customer: customerData }),
+          headers,
+          body: body instanceof URLSearchParams ? body.toString() : body,
         });
         
         const data = await response.json();
-        console.log('editCustomer response status:', response.status);
-        console.log('editCustomer response:', JSON.stringify(data));
+        console.log(`Attempt ${i + 1} response:`, JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
           console.log('SUCCESS! Customer updated');
           return data;
         }
-        
-        console.log('URL failed:', data.errorMsg || data.errors);
       } catch (e) {
-        console.log('URL error:', e);
+        console.log(`Attempt ${i + 1} error:`, e);
       }
     }
     
-    throw new Error('Failed to edit customer with all sites');
+    throw new Error('Failed to edit customer with all approaches');
   }
 
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {
