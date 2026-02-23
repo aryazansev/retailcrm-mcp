@@ -173,6 +173,7 @@ app.all('/webhook/vykup', async (req, res) => {
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
+    let vozvratOrders = 0;
     
     // Get all orders using filter[customerId]
     let totalOrdersFound = 0;
@@ -200,8 +201,10 @@ app.all('/webhook/vykup', async (req, res) => {
         totalOrdersFound++;
         if (order.status === 'completed') {
           completedOrders++;
-        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+        } else if (order.status === 'cancel-other') {
           canceledOrders++;
+        } else if (order.status === 'vozvrat-im') {
+          vozvratOrders++;
         }
       }
       
@@ -213,14 +216,16 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
-    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Total orders:', totalOrdersFound);
+    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders, 'Total:', totalOrdersFound);
+    
+    // Formula: vykup = ((completed - vozvrat) / (completed + cancel-other + vozvrat)) × 100
+    const totalRelevant = completedOrders + canceledOrders + vozvratOrders;
+    const purchasedOrders = completedOrders - vozvratOrders;
     
     let vykupPercent = 0;
-    if (canceledOrders > 0) {
-      vykupPercent = Math.ceil((completedOrders / canceledOrders) * 100);
+    if (totalRelevant > 0) {
+      vykupPercent = Math.ceil((purchasedOrders / totalRelevant) * 100);
       if (vykupPercent > 100) vykupPercent = 100;
-    } else if (completedOrders > 0) {
-      vykupPercent = 100;
     }
     
     console.log('Vykup percent:', vykupPercent);
