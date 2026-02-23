@@ -56,6 +56,7 @@ export class RetailCRMClient {
     limit?: number;
     page?: number;
     filter?: Record<string, any>;
+    site?: string;
   } = {}): Promise<any> {
     const params: Record<string, any> = {
       limit: [20, 50, 100].includes(options.limit || 20) ? options.limit || 20 : 20,
@@ -66,6 +67,10 @@ export class RetailCRMClient {
       Object.entries(options.filter).forEach(([key, value]) => {
         params[`filter[${key}]`] = value;
       });
+    }
+
+    if (options.site) {
+      params.site = options.site;
     }
 
     return this.request("GET", "/orders", params);

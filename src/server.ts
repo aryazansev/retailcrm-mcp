@@ -175,59 +175,62 @@ app.all('/webhook/vykup', async (req, res) => {
     let canceledOrders = 0;
     const limit = 100;
     
-    // Search orders by iterating through pages (filter by customer doesn't work reliably)
-    const maxPages = 20; // Search first 20 pages (2000 orders) - faster but covers most recent orders
+    // Search orders across all sites
+    const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+    
+    // Search orders by iterating through pages on all sites (filter by customer doesn't work reliably)
+    const maxPages = 20; // Search first 20 pages per site
     let totalOrdersFound = 0;
     
     // Track how many pages we've checked and exit early if we've seen enough orders
     let lastOrderCount = 0;
     let noNewOrdersCount = 0;
     
-    while (page <= maxPages) {
-      const ordersResult = await client.getOrders({
-        limit,
-        page
-      });
+    // Search orders on each site
+    for (const site of allSites) {
+      console.log('Searching orders on site:', site);
+      let sitePage = 1;
       
-      if (!ordersResult.orders || ordersResult.orders.length === 0) {
-        break;
-      }
-      
-      for (const order of ordersResult.orders) {
-        // Check if this order belongs to our customer
-        let orderCustomerId = null;
-        if (order.customer) {
-          if (typeof order.customer === 'object') {
-            orderCustomerId = order.customer.id;
-          } else {
-            orderCustomerId = Number(order.customer);
+      while (sitePage <= maxPages) {
+        const ordersResult = await client.getOrders({
+          limit,
+          page: sitePage,
+          site
+        });
+        
+        if (!ordersResult.orders || ordersResult.orders.length === 0) {
+          break;
+        }
+        
+        for (const order of ordersResult.orders) {
+          // Check if this order belongs to our customer
+          let orderCustomerId = null;
+          if (order.customer) {
+            if (typeof order.customer === 'object') {
+              orderCustomerId = order.customer.id;
+            } else {
+              orderCustomerId = Number(order.customer);
+            }
+          }
+          
+          if (orderCustomerId === customerIdCRM) {
+            totalOrdersFound++;
+            if (order.status === 'completed') {
+              completedOrders++;
+            } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+              canceledOrders++;
+            }
           }
         }
         
-        if (orderCustomerId === customerIdCRM) {
-          totalOrdersFound++;
-          if (order.status === 'completed') {
-            completedOrders++;
-          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-            canceledOrders++;
-          }
-        }
-      }
-      
-      // Exit early if we've found orders and this page has no new matches (orders are sorted by date)
-      if (totalOrdersFound > lastOrderCount) {
-        lastOrderCount = totalOrdersFound;
-        noNewOrdersCount = 0;
-      } else {
-        noNewOrdersCount++;
-        // If 3 consecutive pages with no new orders for this customer, likely done
-        if (noNewOrdersCount >= 3 && totalOrdersFound > 0) {
-          console.log('No more orders found for customer, stopping search');
+        if (ordersResult.orders.length < limit) {
           break;
         }
+        sitePage++;
       }
-      
-      console.log('Page', page, '- found so far:', totalOrdersFound);
+    }
+    
+    console.log('Total orders found across all sites:', totalOrdersFound);
       
       if (ordersResult.orders.length < limit) {
         break;
