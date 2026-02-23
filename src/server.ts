@@ -178,7 +178,10 @@ app.all('/webhook/vykup', async (req, res) => {
     let totalOrdersFound = 0;
     const limit = 100;
     
+    console.log('Fetching orders with customerId:', customerIdCRM);
+    
     while (true) {
+      console.log('Fetching page', page);
       const ordersResult = await client.getOrders({
         limit,
         page,
@@ -186,6 +189,8 @@ app.all('/webhook/vykup', async (req, res) => {
           customerId: customerIdCRM
         }
       });
+      
+      console.log('Got', ordersResult.orders?.length || 0, 'orders');
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
