@@ -176,7 +176,7 @@ app.all('/webhook/vykup', async (req, res) => {
     const limit = 100;
     
     // Search orders by iterating through pages (filter by customer doesn't work reliably)
-    const maxPages = 500;
+    const maxPages = 100; // Search first 100 pages (10000 orders) - should cover most recent customers
     let totalOrdersFound = 0;
     
     while (page <= maxPages) {
