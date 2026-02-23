@@ -220,7 +220,8 @@ app.all('/webhook/vykup', async (req, res) => {
     
     // Formula: vykup = ((completed - vozvrat) / (completed + cancel-other + vozvrat)) × 100
     const totalRelevant = completedOrders + canceledOrders + vozvratOrders;
-    const purchasedOrders = completedOrders - vozvratOrders;
+    let purchasedOrders = completedOrders - vozvratOrders;
+    if (purchasedOrders < 0) purchasedOrders = 0;
     
     let vykupPercent = 0;
     if (totalRelevant > 0) {
