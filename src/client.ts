@@ -334,10 +334,28 @@ export class RetailCRMClient {
     const bodyStr = JSON.stringify({ customer: customerData });
     console.log('Request body:', bodyStr);
     
-    // Use provided site, or try ashrussia-ru
+    // Use provided site
     const sitesToTry = site ? [site] : ['ashrussia-ru'];
     
     for (const s of sitesToTry) {
+      // First, try to set externalId if not present (required for editing)
+      const setExtUrl = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
+      const extData = { customer: { externalId: String(id) } };
+      console.log('Setting externalId first...');
+      
+      try {
+        const extResponse = await fetch(setExtUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(extData),
+        });
+        const extResult = await extResponse.json();
+        console.log('Set externalId response:', JSON.stringify(extResult));
+      } catch (e) {
+        console.log('Set externalId error:', e);
+      }
+      
+      // Now edit the customer
       const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
       try {
         console.log('editCustomer POST to:', url);
