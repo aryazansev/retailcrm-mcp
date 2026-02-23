@@ -57,18 +57,42 @@ export class RetailCRMClient {
     page?: number;
     filter?: Record<string, any>;
   } = {}): Promise<any> {
-    const params: Record<string, any> = {
-      limit: [20, 50, 100].includes(options.limit || 20) ? options.limit || 20 : 20,
-      page: options.page || 1,
-    };
-
+    // Build URL manually to handle filter keys correctly
+    const urlStr = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}`;
+    const url = new URL(urlStr);
+    
+    // Add pagination params
+    const validLimit = [20, 50, 100].includes(options.limit || 20) ? options.limit || 20 : 20;
+    url.searchParams.append('limit', String(validLimit));
+    url.searchParams.append('page', String(options.page || 1));
+    
+    // Add filter params - handle brackets correctly
     if (options.filter) {
       Object.entries(options.filter).forEach(([key, value]) => {
-        params[`filter[${key}]`] = value;
+        url.searchParams.append(`filter[${key}]`, String(value));
       });
     }
 
-    return this.request("GET", "/orders", params);
+    console.log('API Request:', url.toString());
+    
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(`API Error: ${data.errorMsg || response.statusText}`);
+    }
+    
+    if (data.success === false) {
+      throw new Error(`API Error: ${data.errorMsg || 'Unknown error'}`);
+    }
+    
+    return data;
   }
 
   async getOrder(id: number): Promise<any> {
