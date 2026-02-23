@@ -218,6 +218,7 @@ app.all('/webhook/vykup', async (req, res) => {
     let vykupPercent = 0;
     if (canceledOrders > 0) {
       vykupPercent = Math.ceil((completedOrders / canceledOrders) * 100);
+      if (vykupPercent > 100) vykupPercent = 100;
     } else if (completedOrders > 0) {
       vykupPercent = 100;
     }
