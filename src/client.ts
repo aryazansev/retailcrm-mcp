@@ -327,22 +327,27 @@ export class RetailCRMClient {
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
     console.log('editCustomer called. id:', id, 'site:', site);
     
-    // RetailCRM API allows editing by internal id
-    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+    const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
     
+    const customerData: any = {
+      customFields: {
+        vykup: vykupValue
+      }
+    };
+    
+    // Try first without site (internal ID should work)
+    const urls = [
+      `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
+    ];
+    
+    // Then try with each site
+    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     for (const s of sitesToTry) {
+      urls.push(`${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`);
+    }
+    
+    for (const url of urls) {
       try {
-        const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
-        
-        const customerData: any = {
-          customFields: {
-            vykup: vykupValue
-          }
-        };
-        
-        // Use internal ID with by=id explicitly
-        const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
-        
         console.log('editCustomer POST to:', url);
         console.log('editCustomer body:', JSON.stringify({ customer: customerData }));
         
@@ -359,13 +364,13 @@ export class RetailCRMClient {
         console.log('editCustomer response:', JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
-          console.log('SUCCESS! Customer updated on site:', s);
+          console.log('SUCCESS! Customer updated');
           return data;
         }
         
-        console.log('Site', s, 'failed:', data.errorMsg || data.errors);
+        console.log('URL failed:', data.errorMsg || data.errors);
       } catch (e) {
-        console.log('Site', s, 'error:', e);
+        console.log('URL error:', e);
       }
     }
     
