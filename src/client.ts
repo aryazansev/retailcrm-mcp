@@ -325,65 +325,33 @@ export class RetailCRMClient {
   }
 
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
-    console.log('=== EDIT CUSTOMER DEBUG ===');
-    console.log('editCustomer called. id:', id, 'site:', site);
-    console.log('RETAILCRM_URL:', this.baseUrl);
+    console.log('=== EDIT CUSTOMER ===');
+    console.log('id:', id, 'site:', site);
     
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
-    console.log('vykupValue to set:', vykupValue);
+    console.log('vykupValue:', vykupValue);
     
-    const customerData = { customFields: { vykup: vykupValue } };
-    const bodyStr = JSON.stringify({ customer: customerData });
-    console.log('Request body:', bodyStr);
+    const bodyStr = JSON.stringify({ customer: { customFields: { vykup: vykupValue } } });
+    console.log('body:', bodyStr);
     
-    // Use provided site
-    const sitesToTry = site ? [site] : ['ashrussia-ru'];
+    const s = site || 'ashrussia-ru';
+    const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
+    console.log('URL:', url);
     
-    for (const s of sitesToTry) {
-      // First, try to set externalId if not present (required for editing)
-      const setExtUrl = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=***&site=${s}&by=id`;
-      const extData = { customer: { externalId: String(id) } };
-      console.log('Setting externalId first...', setExtUrl);
-      
-      try {
-        const extResponse = await fetch(setExtUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(extData),
-        });
-        const extResult = await extResponse.json();
-        console.log('Set externalId response:', JSON.stringify(extResult));
-      } catch (e) {
-        console.log('Set externalId error:', e);
-      }
-      
-      // Now edit the customer
-      const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=***&site=${s}&by=id`;
-      console.log('editCustomer POST to:', url);
-      
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: bodyStr,
-        });
-        
-        const data = await response.json();
-        console.log('editCustomer response status:', response.status);
-        console.log('editCustomer response:', JSON.stringify(data));
-        
-        if (response.ok && data.success !== false) {
-          console.log('SUCCESS! Customer updated on site:', s);
-          return data;
-        }
-        
-        console.log('Site', s, 'failed:', data);
-      } catch (e) {
-        console.log('Site', s, 'error:', e);
-      }
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: bodyStr,
+    });
+    
+    const data = await response.json();
+    console.log('Response:', JSON.stringify(data));
+    
+    if (response.ok && data.success !== false) {
+      return data;
     }
     
-    throw new Error('Failed to edit customer');
+    throw new Error(JSON.stringify(data));
   }
 
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {

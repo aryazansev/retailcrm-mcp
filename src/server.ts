@@ -236,6 +236,7 @@ app.all('/webhook/vykup', async (req, res) => {
     
     let updateResult = null;
     let updateError = null;
+    let editLog = [];
     
     // Edit by internal ID - RetailCRM API supports this
     console.log('Trying edit by internal ID:', customerIdCRM, 'site:', customerSite);
