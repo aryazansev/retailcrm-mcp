@@ -213,9 +213,6 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
-    console.log('Total orders found:', totalOrdersFound);
-    }
-    
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Total orders:', totalOrdersFound);
     
     let vykupPercent = 0;
