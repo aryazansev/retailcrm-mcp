@@ -255,7 +255,7 @@ app.all('/webhook/vykup', async (req, res) => {
     let updateResult = null;
     let updateError = null;
     
-    // First try with externalId if available
+    // Try to update - only works if customer has externalId
     if (customer?.externalId) {
       console.log('Trying edit by externalId:', customer.externalId, 'site:', customerSite);
       try {
@@ -267,21 +267,11 @@ app.all('/webhook/vykup', async (req, res) => {
         console.log('Edit by externalId success');
       } catch (e) {
         console.log('Failed edit by externalId:', e);
-        try {
-          updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
-        } catch (e2) {
-          console.log('Failed edit by id:', e2);
-          updateError = e2 instanceof Error ? e2.message : 'Update failed';
-        }
-      }
-    } else {
-      console.log('No externalId, trying edit by id');
-      try {
-        updateResult = await client.editCustomer(customerIdCRM, { vykup: vykupPercent }, customerSite);
-      } catch (e) {
-        console.log('Failed to update customer:', e);
         updateError = e instanceof Error ? e.message : 'Update failed';
       }
+    } else {
+      console.log('No externalId - cannot update customer (RetailCRM limitation)');
+      updateError = 'No externalId - customer cannot be updated';
     }
     
     res.json({
