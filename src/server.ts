@@ -101,38 +101,25 @@ app.all('/webhook/vykup', async (req, res) => {
     try {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
-        
-        // Search through customer pages to find this customer and their site
-        let foundCustomer = null;
-        let foundSite = null;
-        
-        for (let searchPage = 1; searchPage <= 100; searchPage++) {
-          const customersResult = await client.getCustomers({
-            limit: 50,
-            page: searchPage
-          });
-          
-          if (!customersResult.customers || customersResult.customers.length === 0) {
-            break;
-          }
-          
-          for (const c of customersResult.customers) {
-            if (c.id === customerId) {
-              foundCustomer = c;
-              foundSite = c.site;
-              console.log('Found customer, site:', foundSite);
+        // First get the customer to find their site
+        const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
+        for (const s of allSites) {
+          try {
+            const customerResult = await client.getCustomer(customerId, s);
+            if (customerResult.customer) {
+              customer = customerResult.customer;
+              customerSite = s;
+              console.log('Found customer with site:', s);
               break;
             }
+          } catch (e) {
+            console.log('Site', s, 'failed:', e);
           }
-          
-          if (foundCustomer) break;
         }
-        
-        if (foundCustomer) {
-          customer = foundCustomer;
-          customerSite = foundSite;
-        } else {
-          return res.status(404).json({ error: 'Клиент не найден в системе' });
+        if (!customer) {
+          const customerResult = await client.getCustomer(customerId);
+          customer = customerResult.customer;
+          customerSite = customerResult.site;
         }
       } else {
         console.log('Getting customer by phone:', normalizedPhone);
@@ -156,74 +143,43 @@ app.all('/webhook/vykup', async (req, res) => {
     const customerEmail = customer.email;
     console.log('Found customer:', customerIdCRM, 'site:', customerSite, 'email:', customerEmail);
     
+    if (!customerEmail) {
+      return res.status(400).json({ error: 'У клиента нет email' });
+    }
+    
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
     const limit = 20;
     
-    // Get orders by customerId if no email
-    if (!customerEmail) {
-      console.log('No email, using customerId to search orders:', customerIdCRM);
+    while (true) {
+      console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
+      const ordersResult = await client.getOrders({
+        limit,
+        page: Number(page),
+        filter: {
+          email: customerEmail
+        }
+      });
       
-      while (true) {
-        const ordersResult = await client.getOrders({
-          limit,
-          page: Number(page),
-          filter: {
-            customerId: customerIdCRM
-          }
-        });
-        
-        console.log('Orders result:', ordersResult.pagination);
-        
-        if (!ordersResult.orders || ordersResult.orders.length === 0) {
-          break;
-        }
-        
-        for (const order of ordersResult.orders) {
-          if (order.status === 'completed') {
-            completedOrders++;
-          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-            canceledOrders++;
-          }
-        }
-        
-        if (ordersResult.orders.length < limit) {
-          break;
-        }
-        page++;
+      console.log('Orders result:', ordersResult.pagination);
+      
+      if (!ordersResult.orders || ordersResult.orders.length === 0) {
+        break;
       }
-    } else {
-      // Original flow - get orders by email
-      while (true) {
-        console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
-        const ordersResult = await client.getOrders({
-          limit,
-          page: Number(page),
-          filter: {
-            email: customerEmail
-          }
-        });
-        
-        console.log('Orders result:', ordersResult.pagination);
-        
-        if (!ordersResult.orders || ordersResult.orders.length === 0) {
-          break;
+      
+      for (const order of ordersResult.orders) {
+        if (order.status === 'completed') {
+          completedOrders++;
+        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+          canceledOrders++;
         }
-        
-        for (const order of ordersResult.orders) {
-          if (order.status === 'completed') {
-            completedOrders++;
-          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-            canceledOrders++;
-          }
-        }
-        
-        if (ordersResult.orders.length < limit) {
-          break;
-        }
-        page++;
       }
+      
+      if (ordersResult.orders.length < limit) {
+        break;
+      }
+      page++;
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
@@ -289,7 +245,6 @@ app.all('/webhook/vykup', async (req, res) => {
 });
 
 // Webhook для обновления всех клиентов (массовый пересчет)
-// NOTE: This is slow because we can't filter orders by customer efficiently
 app.post('/webhook/vykup/update-all', async (req, res) => {
   try {
     const { RetailCRMClient } = await import('./client.js');
@@ -302,13 +257,89 @@ app.post('/webhook/vykup/update-all', async (req, res) => {
     
     const client = new RetailCRMClient(RETAILCRM_URL, RETAILCRM_API_KEY);
     
-    const maxCustomers = parseInt(req.query.maxCustomers as string) || parseInt(req.body?.maxCustomers as string) || 100;
+    let page = 1;
+    let updated = 0;
+    let errors = 0;
+    const limit = 50;
+    const maxCustomers = parseInt(req.body.maxCustomers) || 100;
     
-    // For now, just return info - full implementation needs different API approach
+    while (updated < maxCustomers) {
+      const customersResult = await client.getCustomers({
+        limit,
+        page
+      });
+      
+      if (!customersResult.customers || customersResult.customers.length === 0) {
+        break;
+      }
+      
+      for (const customer of customersResult.customers) {
+        try {
+          const customerId = customer.id;
+          
+          let orderPage = 1;
+          let completedOrders = 0;
+          let canceledOrders = 0;
+          const orderLimit = 100;
+          
+          while (true) {
+            const ordersResult = await client.getOrders({
+              limit: orderLimit,
+              page: orderPage,
+              filter: {
+                customer: customerId
+              }
+            });
+            
+            if (!ordersResult.orders || ordersResult.orders.length === 0) {
+              break;
+            }
+            
+              for (const order of ordersResult.orders) {
+                if (order.status === 'completed') {
+                  completedOrders++;
+                } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+                  canceledOrders++;
+                }
+              }
+            
+            if (ordersResult.orders.length < orderLimit) {
+              break;
+            }
+            orderPage++;
+          }
+          
+          let vykupPercent = 0;
+          if (canceledOrders > 0) {
+            vykupPercent = Math.round((completedOrders / canceledOrders) * 100);
+          } else if (completedOrders > 0) {
+            vykupPercent = 100;
+          }
+          
+          const custSite = customer.site;
+          await client.editCustomer(customerId, {
+            vykup: vykupPercent
+          }, custSite);
+          
+          updated++;
+          console.log(`Updated customer ${customerId}: completed=${completedOrders}, canceled=${canceledOrders}, vykup=${vykupPercent}%`);
+          
+        } catch (err) {
+          errors++;
+          console.error(`Error updating customer ${customer.id}:`, err);
+        }
+      }
+      
+      if (customersResult.customers.length < limit) {
+        break;
+      }
+      page++;
+    }
+    
     res.json({
-      success: false,
-      error: 'This endpoint is under maintenance. Use /webhook/vykup?customerId=ID instead for individual customers.',
-      hint: 'To update all customers, please run the script locally with access to the API.'
+      success: true,
+      updated,
+      errors
     });
     
   } catch (error) {

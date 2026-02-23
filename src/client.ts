@@ -217,23 +217,13 @@ export class RetailCRMClient {
   }
 
   async getCustomer(id: number, site?: string): Promise<any> {
-    const sites = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-    
-    for (const s of sites) {
-      try {
-        const result = await this.request("GET", `/customers/${id}`, { site: s });
-        if (result.customer) {
-          console.log('getCustomer result:', JSON.stringify(result));
-          return { customer: result.customer, site: s };
-        }
-      } catch (e) {
-        console.log('Site', s, 'failed:', e);
-      }
+    const params: Record<string, any> = {};
+    if (site) {
+      params.site = site;
     }
-    
-    // Try without site as last resort
-    const result = await this.request("GET", `/customers/${id}`, {});
-    return { customer: result.customer, site: result.customer?.site };
+    const result = await this.request("GET", `/customers/${id}`, params);
+    console.log('getCustomer result:', JSON.stringify(result));
+    return { customer: result.customer, site: site || result.customer?.site };
   }
 
   async getCustomerByIdRaw(id: number): Promise<any> {
