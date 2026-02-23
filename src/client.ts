@@ -325,7 +325,9 @@ export class RetailCRMClient {
   }
 
   async editCustomer(id: number, customer: Record<string, any>, site?: string): Promise<any> {
+    console.log('=== EDIT CUSTOMER DEBUG ===');
     console.log('editCustomer called. id:', id, 'site:', site);
+    console.log('RETAILCRM_URL:', this.baseUrl);
     
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
     console.log('vykupValue to set:', vykupValue);
@@ -339,9 +341,9 @@ export class RetailCRMClient {
     
     for (const s of sitesToTry) {
       // First, try to set externalId if not present (required for editing)
-      const setExtUrl = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
+      const setExtUrl = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=***&site=${s}&by=id`;
       const extData = { customer: { externalId: String(id) } };
-      console.log('Setting externalId first...');
+      console.log('Setting externalId first...', setExtUrl);
       
       try {
         const extResponse = await fetch(setExtUrl, {
@@ -356,10 +358,10 @@ export class RetailCRMClient {
       }
       
       // Now edit the customer
-      const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
+      const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=***&site=${s}&by=id`;
+      console.log('editCustomer POST to:', url);
+      
       try {
-        console.log('editCustomer POST to:', url);
-        
         const response = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -367,6 +369,7 @@ export class RetailCRMClient {
         });
         
         const data = await response.json();
+        console.log('editCustomer response status:', response.status);
         console.log('editCustomer response:', JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
