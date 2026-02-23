@@ -173,32 +173,44 @@ app.all('/webhook/vykup', async (req, res) => {
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
-    const limit = 20;
+    const limit = 100;
     
-    // Always use customerId to search orders (more reliable than email)
-    while (true) {
-      console.log('Fetching orders page:', page, 'with customerId filter:', customerIdCRM);
+    // Search orders by iterating through pages (filter by customer doesn't work reliably)
+    const maxPages = 500;
+    let totalOrdersFound = 0;
+    
+    while (page <= maxPages) {
       const ordersResult = await client.getOrders({
         limit,
-        page: Number(page),
-        filter: {
-          customer: customerIdCRM
-        }
+        page
       });
-      
-      console.log('Orders result:', ordersResult.pagination);
       
       if (!ordersResult.orders || ordersResult.orders.length === 0) {
         break;
       }
       
       for (const order of ordersResult.orders) {
-        if (order.status === 'completed') {
-          completedOrders++;
-        } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-          canceledOrders++;
+        // Check if this order belongs to our customer
+        let orderCustomerId = null;
+        if (order.customer) {
+          if (typeof order.customer === 'object') {
+            orderCustomerId = order.customer.id;
+          } else {
+            orderCustomerId = Number(order.customer);
+          }
+        }
+        
+        if (orderCustomerId === customerIdCRM) {
+          totalOrdersFound++;
+          if (order.status === 'completed') {
+            completedOrders++;
+          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+            canceledOrders++;
+          }
         }
       }
+      
+      console.log('Page', page, '- found so far:', totalOrdersFound);
       
       if (ordersResult.orders.length < limit) {
         break;
@@ -206,7 +218,7 @@ app.all('/webhook/vykup', async (req, res) => {
       page++;
     }
     
-    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
+    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Total orders:', totalOrdersFound);
     
     let vykupPercent = 0;
     if (canceledOrders > 0) {
