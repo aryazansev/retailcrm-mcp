@@ -173,60 +173,53 @@ app.all('/webhook/vykup', async (req, res) => {
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
-    const limit = 100;
     
-    // Search orders across all sites
-    const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-    
-    // Search orders by iterating through pages on all sites
-    const maxPages = 100; // Search first 100 pages per site to find all orders
+    // Search orders across all sites (by iterating through pages)
+    const maxPages = 500; // Search first 500 pages to find all orders
     let totalOrdersFound = 0;
     
-    // Search orders on each site
-    for (const site of allSites) {
-      console.log('Searching orders on site:', site);
-      let sitePage = 1;
+    // Search orders by iterating through pages
+    for (let page = 1; page <= maxPages; page++) {
+      if (page % 50 === 0) {
+        console.log('Searching page:', page);
+      }
       
-      while (sitePage <= maxPages) {
-        const ordersResult = await client.getOrders({
-          limit,
-          page: sitePage,
-          site
-        });
-        
-        if (!ordersResult.orders || ordersResult.orders.length === 0) {
-          break;
-        }
-        
-        for (const order of ordersResult.orders) {
-          // Check if this order belongs to our customer
-          let orderCustomerId = null;
-          if (order.customer) {
-            if (typeof order.customer === 'object') {
-              orderCustomerId = order.customer.id;
-            } else {
-              orderCustomerId = Number(order.customer);
-            }
-          }
-          
-          if (orderCustomerId === customerIdCRM) {
-            totalOrdersFound++;
-            if (order.status === 'completed') {
-              completedOrders++;
-            } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-              canceledOrders++;
-            }
+      const ordersResult = await client.getOrders({
+        limit: 100,
+        page
+      });
+      
+      if (!ordersResult.orders || ordersResult.orders.length === 0) {
+        break;
+      }
+      
+      for (const order of ordersResult.orders) {
+        // Check if this order belongs to our customer
+        let orderCustomerId = null;
+        if (order.customer) {
+          if (typeof order.customer === 'object') {
+            orderCustomerId = order.customer.id;
+          } else {
+            orderCustomerId = Number(order.customer);
           }
         }
         
-        if (ordersResult.orders.length < limit) {
-          break;
+        if (orderCustomerId === customerIdCRM) {
+          totalOrdersFound++;
+          if (order.status === 'completed') {
+            completedOrders++;
+          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
+            canceledOrders++;
+          }
         }
-        sitePage++;
+      }
+      
+      if (ordersResult.orders.length < 100) {
+        break;
       }
     }
     
-    console.log('Total orders found across all sites:', totalOrdersFound);
+    console.log('Total orders found:', totalOrdersFound);
       
       if (ordersResult.orders.length < limit) {
         break;
