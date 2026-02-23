@@ -330,53 +330,39 @@ export class RetailCRMClient {
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
     console.log('vykupValue to set:', vykupValue);
     
-    // Try different approaches
-    const approaches = [
-      // Approach 1: JSON body with customFields
-      {
-        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
-        body: JSON.stringify({ customer: { customFields: { vykup: vykupValue } } }),
-        headers: { "Content-Type": "application/json" }
-      },
-      // Approach 2: form-urlencoded
-      {
-        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&by=id`,
-        body: new URLSearchParams({ customer: JSON.stringify({ customFields: { vykup: vykupValue } }) }),
-        headers: { "Content-Type": "application/x-www-form-urlencoded" }
-      },
-      // Approach 3: with site
-      {
-        url: `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${site || 'ashrussia-ru'}&by=id`,
-        body: JSON.stringify({ customer: { customFields: { vykup: vykupValue } } }),
-        headers: { "Content-Type": "application/json" }
-      },
-    ];
+    const customerData = { customFields: { vykup: vykupValue } };
+    const bodyStr = JSON.stringify({ customer: customerData });
+    console.log('Request body:', bodyStr);
     
-    for (let i = 0; i < approaches.length; i++) {
-      const { url, body, headers } = approaches[i];
+    // Use provided site, or try ashrussia-ru
+    const sitesToTry = site ? [site] : ['ashrussia-ru'];
+    
+    for (const s of sitesToTry) {
+      const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
       try {
-        console.log(`Attempt ${i + 1}: POST to`, url);
-        console.log(`Attempt ${i + 1}: body:`, body instanceof URLSearchParams ? body.toString() : body);
+        console.log('editCustomer POST to:', url);
         
         const response = await fetch(url, {
           method: "POST",
-          headers,
-          body: body instanceof URLSearchParams ? body.toString() : body,
+          headers: { "Content-Type": "application/json" },
+          body: bodyStr,
         });
         
         const data = await response.json();
-        console.log(`Attempt ${i + 1} response:`, JSON.stringify(data));
+        console.log('editCustomer response:', JSON.stringify(data));
         
         if (response.ok && data.success !== false) {
-          console.log('SUCCESS! Customer updated');
+          console.log('SUCCESS! Customer updated on site:', s);
           return data;
         }
+        
+        console.log('Site', s, 'failed:', data);
       } catch (e) {
-        console.log(`Attempt ${i + 1} error:`, e);
+        console.log('Site', s, 'error:', e);
       }
     }
     
-    throw new Error('Failed to edit customer with all approaches');
+    throw new Error('Failed to edit customer');
   }
 
   async editCustomerByExternalId(externalId: string, site: string, customer: Record<string, any>): Promise<any> {

@@ -167,6 +167,7 @@ app.all('/webhook/vykup', async (req, res) => {
     
     const customerIdCRM = customer.id;
     customerSite = customerSite || customer.site;
+    console.log('Final customerSite:', customerSite);
     const customerEmail = customer.email;
     console.log('Found customer:', customerIdCRM, 'site:', customerSite, 'email:', customerEmail);
     
