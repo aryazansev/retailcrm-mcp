@@ -101,25 +101,52 @@ app.all('/webhook/vykup', async (req, res) => {
     try {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
-        // First get the customer to find their site
-        const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-        for (const s of allSites) {
-          try {
-            const customerResult = await client.getCustomer(customerId, s);
-            if (customerResult.customer) {
-              customer = customerResult.customer;
-              customerSite = s;
-              console.log('Found customer with site:', s);
+        
+        // Search through customer pages to find the customer
+        let foundCustomer = null;
+        let foundSite = null;
+        
+        for (let searchPage = 1; searchPage <= 200; searchPage++) {
+          const customersResult = await client.getCustomers({
+            limit: 50,
+            page: searchPage
+          });
+          
+          if (!customersResult.customers || customersResult.customers.length === 0) {
+            break;
+          }
+          
+          for (const c of customersResult.customers) {
+            if (c.id === customerId) {
+              foundCustomer = c;
+              foundSite = c.site;
+              console.log('Found customer via search, site:', foundSite);
               break;
             }
-          } catch (e) {
-            console.log('Site', s, 'failed:', e);
           }
+          
+          if (foundCustomer) break;
         }
-        if (!customer) {
-          const customerResult = await client.getCustomer(customerId);
-          customer = customerResult.customer;
-          customerSite = customerResult.site;
+        
+        if (foundCustomer) {
+          customer = foundCustomer;
+          customerSite = foundSite;
+        } else {
+          // Fallback: try getCustomer with all sites
+          const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+          for (const s of allSites) {
+            try {
+              const customerResult = await client.getCustomer(customerId, s);
+              if (customerResult.customer) {
+                customer = customerResult.customer;
+                customerSite = s;
+                console.log('Found customer with site:', s);
+                break;
+              }
+            } catch (e) {
+              console.log('Site', s, 'failed:', e);
+            }
+          }
         }
       } else {
         console.log('Getting customer by phone:', normalizedPhone);
