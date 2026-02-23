@@ -178,13 +178,9 @@ app.all('/webhook/vykup', async (req, res) => {
     // Search orders across all sites
     const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
-    // Search orders by iterating through pages on all sites (filter by customer doesn't work reliably)
-    const maxPages = 20; // Search first 20 pages per site
+    // Search orders by iterating through pages on all sites
+    const maxPages = 100; // Search first 100 pages per site to find all orders
     let totalOrdersFound = 0;
-    
-    // Track how many pages we've checked and exit early if we've seen enough orders
-    let lastOrderCount = 0;
-    let noNewOrdersCount = 0;
     
     // Search orders on each site
     for (const site of allSites) {
@@ -243,7 +239,6 @@ app.all('/webhook/vykup', async (req, res) => {
     let vykupPercent = 0;
     if (canceledOrders > 0) {
       vykupPercent = Math.ceil((completedOrders / canceledOrders) * 100);
-      if (vykupPercent > 100) vykupPercent = 100;
     } else if (completedOrders > 0) {
       vykupPercent = 100;
     }
