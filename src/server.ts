@@ -176,8 +176,12 @@ app.all('/webhook/vykup', async (req, res) => {
     const limit = 100;
     
     // Search orders by iterating through pages (filter by customer doesn't work reliably)
-    const maxPages = 100; // Search first 100 pages (10000 orders) - should cover most recent customers
+    const maxPages = 20; // Search first 20 pages (2000 orders) - faster but covers most recent orders
     let totalOrdersFound = 0;
+    
+    // Track how many pages we've checked and exit early if we've seen enough orders
+    let lastOrderCount = 0;
+    let noNewOrdersCount = 0;
     
     while (page <= maxPages) {
       const ordersResult = await client.getOrders({
@@ -207,6 +211,19 @@ app.all('/webhook/vykup', async (req, res) => {
           } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
             canceledOrders++;
           }
+        }
+      }
+      
+      // Exit early if we've found orders and this page has no new matches (orders are sorted by date)
+      if (totalOrdersFound > lastOrderCount) {
+        lastOrderCount = totalOrdersFound;
+        noNewOrdersCount = 0;
+      } else {
+        noNewOrdersCount++;
+        // If 3 consecutive pages with no new orders for this customer, likely done
+        if (noNewOrdersCount >= 3 && totalOrdersFound > 0) {
+          console.log('No more orders found for customer, stopping search');
+          break;
         }
       }
       
