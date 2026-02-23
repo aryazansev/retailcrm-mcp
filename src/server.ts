@@ -175,48 +175,16 @@ app.all('/webhook/vykup', async (req, res) => {
     let canceledOrders = 0;
     const limit = 20;
     
-    // Get orders by customerId if no email
-    if (!customerEmail) {
-      console.log('No email, using customerId to search orders:', customerIdCRM);
-      
-      while (true) {
-        const ordersResult = await client.getOrders({
-          limit,
-          page: Number(page),
-          filter: {
-            customer: customerIdCRM
-          }
-        });
-        
-        console.log('Orders result:', ordersResult.pagination);
-        
-        if (!ordersResult.orders || ordersResult.orders.length === 0) {
-          break;
+    // Always use customerId to search orders (more reliable than email)
+    while (true) {
+      console.log('Fetching orders page:', page, 'with customerId filter:', customerIdCRM);
+      const ordersResult = await client.getOrders({
+        limit,
+        page: Number(page),
+        filter: {
+          customer: customerIdCRM
         }
-        
-        for (const order of ordersResult.orders) {
-          if (order.status === 'completed') {
-            completedOrders++;
-          } else if (order.status === 'cancel-other' || order.status === 'vozvrat-im') {
-            canceledOrders++;
-          }
-        }
-        
-        if (ordersResult.orders.length < limit) {
-          break;
-        }
-        page++;
-      }
-    } else {
-      while (true) {
-        console.log('Fetching orders page:', page, 'with email filter:', customerEmail);
-        const ordersResult = await client.getOrders({
-          limit,
-          page: Number(page),
-          filter: {
-            email: customerEmail
-          }
-        });
+      });
       
       console.log('Orders result:', ordersResult.pagination);
       
@@ -236,7 +204,6 @@ app.all('/webhook/vykup', async (req, res) => {
         break;
       }
       page++;
-    }
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
