@@ -331,17 +331,20 @@ export class RetailCRMClient {
     const vykupValue = (customer as any).vykup ?? (customer as any).customFields?.vykup;
     console.log('vykupValue:', vykupValue);
     
-    const bodyStr = JSON.stringify({ customer: { customFields: { vykup: vykupValue } } });
-    console.log('body:', bodyStr);
-    
     const s = site || 'ashrussia-ru';
     const url = `${this.baseUrl}/api/v5/customers/${id}/edit?apiKey=${this.apiKey}&site=${s}&by=id`;
     console.log('URL:', url);
     
+    // Use form-urlencoded format (required by RetailCRM)
+    const formData = new URLSearchParams();
+    formData.append('customer', JSON.stringify({ customFields: { vykup: vykupValue } }));
+    
+    console.log('body:', formData.toString());
+    
     const response = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: bodyStr,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData.toString(),
     });
     
     const data = await response.json();
