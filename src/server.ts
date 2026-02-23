@@ -143,7 +143,6 @@ app.all('/webhook/vykup', async (req, res) => {
     const customerEmail = customer.email;
     console.log('Found customer:', customerIdCRM, 'site:', customerSite, 'email:', customerEmail);
     
-    // Get orders - by email if available, otherwise by customerId
     let page = 1;
     let completedOrders = 0;
     let canceledOrders = 0;
@@ -210,6 +209,7 @@ app.all('/webhook/vykup', async (req, res) => {
         break;
       }
       page++;
+    }
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders);
