@@ -77,26 +77,20 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // If orderId provided, get order first to find site
-    if (orderIdNum) {
+    // If orderId provided but no customerId, get order to find customer
+    if (orderIdNum && !customerId) {
       console.log('Getting order by ID:', orderIdNum);
       try {
         const orderResult = await client.getOrder(orderIdNum);
-        console.log('Order result:', JSON.stringify(orderResult));
         if (orderResult.order?.customer) {
-          // Get customer from order if not already provided
-          if (!customerId) {
-            if (typeof orderResult.order.customer === 'object') {
-              customer = orderResult.order.customer;
-              customerId = customer.id;
-            } else {
-              customerId = Number(orderResult.order.customer);
-            }
-            console.log('Got customerId from order:', customerId);
+          if (typeof orderResult.order.customer === 'object') {
+            customer = orderResult.order.customer;
+            customerId = customer.id;
+          } else {
+            customerId = Number(orderResult.order.customer);
           }
-          // Get site from order
           customerSite = orderResult.site;
-          console.log('Got site from order:', customerSite);
+          console.log('Got customerId from order:', customerId, 'site:', customerSite);
         }
       } catch (e) {
         console.log('Error getting order:', e);
