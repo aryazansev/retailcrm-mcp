@@ -96,38 +96,17 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // First try without site - check multiple pages
-    for (let page = 1; page <= 10; page++) {
+    // Try filter by id first (faster)
+    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+    
+    for (const s of sitesToTry) {
       try {
-        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&limit=100&page=${page}`;
+        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&filter[id]=${id}&limit=1`;
         const response = await fetch(url);
         const data = await response.json();
         
-        if (!data.orders || data.orders.length === 0) break;
-        
-        const order = data.orders.find((o: any) => o.id === id);
-        if (order) {
-          return { order, site: order.site };
-        }
-      } catch (e) {
-        console.log('Page', page, 'error:', e);
-      }
-    }
-    
-    // Try each site if not found
-    const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-    
-    for (const s of sites) {
-      try {
-        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&limit=100`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.orders) {
-          const order = data.orders.find((o: any) => o.id === id);
-          if (order) {
-            return { order, site: s };
-          }
+        if (data.orders && data.orders.length > 0) {
+          return { order: data.orders[0], site: s };
         }
       } catch (e) {
         console.log('Site', s, 'error:', e);
