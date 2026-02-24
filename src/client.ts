@@ -69,7 +69,7 @@ export class RetailCRMClient {
     // Add filter params - handle brackets correctly
     if (options.filter) {
       Object.entries(options.filter).forEach(([key, value]) => {
-        url.searchParams.append(`filter[${key}]`, String(value));
+        params[`filter[${key}]`] = String(value);
       });
     }
 
