@@ -96,14 +96,12 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // Try each site - get recent orders and find the one with matching id
+    // Check pages on each site
     const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
     
     for (const s of sitesToTry) {
-      try {
-        console.log('Checking site:', s, 'for order', id);
-        // Check multiple pages to find the order
-        for (let page = 1; page <= 5; page++) {
+      for (let page = 1; page <= 3; page++) {
+        try {
           const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&limit=50&page=${page}`;
           const response = await fetch(url);
           const data = await response.json();
@@ -112,16 +110,16 @@ export class RetailCRMClient {
           
           const order = data.orders.find((o: any) => o.id === id);
           if (order) {
-            console.log('Found order on site:', s, 'page:', page);
             return { order, site: s };
           }
+        } catch (e) {
+          console.log('Site', s, 'page', page, 'error:', e);
         }
-      } catch (e) {
-        console.log('Site', s, 'error:', e);
       }
     }
     
     throw new Error("Order not found");
+  }
   }
 
   async getOrderByNumber(number: string): Promise<any> {
