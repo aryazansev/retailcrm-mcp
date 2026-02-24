@@ -77,25 +77,7 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // If orderId provided but no customerId, get order to find customer
-    if (orderIdNum && !customerId) {
-      console.log('Getting order by ID:', orderIdNum);
-      try {
-        const orderResult = await client.getOrder(orderIdNum);
-        if (orderResult.order?.customer) {
-          if (typeof orderResult.order.customer === 'object') {
-            customer = orderResult.order.customer;
-            customerId = customer.id;
-          } else {
-            customerId = Number(orderResult.order.customer);
-          }
-          customerSite = orderResult.site;
-          console.log('Got customerId from order:', customerId, 'site:', customerSite);
-        }
-      } catch (e) {
-        console.log('Error getting order:', e);
-      }
-    }
+    // Skip orderId lookup - webhook always sends customerId
     
     try {
       if (customerId) {
