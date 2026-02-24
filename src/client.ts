@@ -95,11 +95,14 @@ export class RetailCRMClient {
     return data;
   }
 
-  async getOrder(id: number): Promise<any> {
-    directly by ID
- // Get order    const url = `${this.baseUrl}/api/v5/orders/${id}?apiKey=${this.apiKey}`;
+  async getOrder(id: number, site?: string): Promise<any> {
+    // Get order directly by ID
+    const url = `${this.baseUrl}/api/v5/orders/${id}?apiKey=${this.apiKey}${site ? '&site=' + site : ''}`;
+    console.log('getOrder URL:', url);
     const response = await fetch(url);
     const data = await response.json();
+    
+    console.log('getOrder response:', JSON.stringify(data));
     
     if (!response.ok || !data.order) {
       throw new Error("Order not found");
