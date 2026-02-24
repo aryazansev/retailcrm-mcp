@@ -96,17 +96,20 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // Try each site with filter
-    const sitesToTry = ['justcouture-ru', 'ashrussia-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+    // Try each site - get recent orders and find the one with matching id
+    const sitesToTry = site ? [site] : ['justcouture-ru', 'ashrussia-ru'];
     
     for (const s of sitesToTry) {
       try {
-        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&filter[id]=${id}&limit=1`;
+        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&limit=20`;
         const response = await fetch(url);
         const data = await response.json();
         
-        if (data.orders && data.orders.length > 0) {
-          return { order: data.orders[0], site: s };
+        if (data.orders) {
+          const order = data.orders.find((o: any) => o.id === id);
+          if (order) {
+            return { order, site: s };
+          }
         }
       } catch (e) {
         console.log('Site', s, 'error:', e);

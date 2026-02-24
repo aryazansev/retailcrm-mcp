@@ -77,87 +77,59 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // If orderId provided but no customerId, get order to find customer
-    if (orderIdNum && !customerId) {
+    // If orderId provided, get order to find phone
+    if (orderIdNum) {
       console.log('Getting order by ID:', orderIdNum);
       try {
         const orderResult = await client.getOrder(orderIdNum);
-        if (orderResult.order?.customer) {
-          if (typeof orderResult.order.customer === 'object') {
-            customer = orderResult.order.customer;
-            customerId = customer.id;
-          } else {
-            customerId = Number(orderResult.order.customer);
+        if (orderResult.order) {
+          // Get phone from order
+          if (orderResult.order.phone) {
+            normalizedPhone = orderResult.order.phone.replace(/\D/g, '');
+            if (!normalizedPhone.startsWith('7')) {
+              normalizedPhone = '7' + normalizedPhone;
+            }
+          }
+          // Get customer id from order
+          const cust = orderResult.order.customer;
+          if (!customerId) {
+            if (typeof cust === 'object') {
+              customerId = cust.id;
+            } else {
+              customerId = Number(cust);
+            }
           }
           customerSite = orderResult.site;
-          console.log('Got customerId from order:', customerId, 'site:', customerSite);
+          console.log('Got from order: customerId=', customerId, 'site=', customerSite, 'phone=', normalizedPhone);
         }
       } catch (e) {
         console.log('Error getting order:', e);
       }
     }
     
-    try {
-      if (customerId) {
-        console.log('Getting customer by ID:', customerId);
-        
-        // Search through customer pages to find the customer
-        let foundCustomer = null;
-        let foundSite = null;
-        
-        for (let searchPage = 1; searchPage <= 200; searchPage++) {
-          const customersResult = await client.getCustomers({
-            limit: 50,
-            page: searchPage
-          });
-          
-          if (!customersResult.customers || customersResult.customers.length === 0) {
+    // Find customer - prefer phone
+    if (normalizedPhone) {
+      console.log('Getting customer by phone:', normalizedPhone);
+      const customerResult = await client.getCustomerByPhone(normalizedPhone);
+      customer = customerResult.customer;
+      customerSite = customerResult.site;
+      console.log('Found via phone, site:', customerSite);
+    } else if (customerId) {
+      // Search by customer id - use getCustomer method
+      const sitesToTry = ['justcouture-ru', 'ashrussia-ru', 'unitednude-ru'];
+      for (const s of sitesToTry) {
+        try {
+          const result = await client.getCustomer(customerId, s);
+          if (result.customer) {
+            customer = result.customer;
+            customerSite = s;
+            console.log('Found via getCustomer, site:', s);
             break;
           }
-          
-          for (const c of customersResult.customers) {
-            if (c.id === customerId) {
-              foundCustomer = c;
-              foundSite = c.site;
-              console.log('Found customer via search, site:', foundSite);
-              break;
-            }
-          }
-          
-          if (foundCustomer) break;
+        } catch (e) {
+          console.log('Site', s, 'failed:', e);
         }
-        
-        if (foundCustomer) {
-          customer = foundCustomer;
-          customerSite = foundSite;
-        } else {
-          // Fallback: try getCustomer with all sites
-          const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-          for (const s of allSites) {
-            try {
-              const customerResult = await client.getCustomer(customerId, s);
-              if (customerResult.customer) {
-                customer = customerResult.customer;
-                customerSite = s;
-                console.log('Found customer with site:', s);
-                break;
-              }
-            } catch (e) {
-              console.log('Site', s, 'failed:', e);
-            }
-          }
-        }
-      } else {
-        console.log('Getting customer by phone:', normalizedPhone);
-        const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
-        customer = customerResult.customer;
-        customerSite = customerResult.site;
-        const customerExternalId = customerResult.externalId;
-        console.log('Customer externalId from search:', customerExternalId);
       }
-    } catch (err) {
-      console.log('Error finding customer:', err);
-      return res.status(404).json({ error: 'Клиент не найден: ' + err });
     }
     
     if (!customer) {
