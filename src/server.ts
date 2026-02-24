@@ -83,40 +83,46 @@ app.all('/webhook/vykup', async (req, res) => {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
         
-        // Try without site first
-        const customersResult = await client.getCustomers({
-          limit: 50,
-          page: 1,
-          filter: { id: customerId }
-        });
+        // Try searching by externalId - need to search through pages
+        let found = false;
         
-        if (customersResult.customers && customersResult.customers.length > 0) {
-          customer = customersResult.customers[0];
-          customerSite = customer.site;
-          console.log('Found customer, site:', customerSite);
+        // Try without site first - search pages
+        for (let page = 1; page <= 50 && !found; page++) {
+          try {
+            const result = await client.getCustomers({
+              limit: 20,
+              page: page,
+              filter: { id: customerId }
+            });
+            
+            if (result.customers && result.customers.length > 0) {
+              for (const c of result.customers) {
+                if (c.id === customerId) {
+                  customer = c;
+                  customerSite = c.site;
+                  console.log('Found customer, site:', customerSite);
+                  found = true;
+                  break;
+                }
+              }
+            }
+            if (result.customers.length < 20) break;
+          } catch (e) {
+            console.log('Page', page, 'error:', e);
+          }
         }
         
-        // If not found, try each site
-        if (!customer) {
-          const sitesToTry = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
-          
-          for (const s of sitesToTry) {
-            try {
-              const result = await client.getCustomers({
-                limit: 1,
-                page: 1,
-                filter: { id: customerId }
-              });
-              
-              if (result.customers && result.customers.length > 0) {
-                customer = result.customers[0];
-                customerSite = s;
-                console.log('Found customer with site:', s);
-                break;
-              }
-            } catch (e) {
-              console.log('Site', s, 'failed:', e);
+        // Try by phone as fallback
+        if (!customer && normalizedPhone) {
+          try {
+            const result = await client.getCustomerByPhone(normalizedPhone);
+            if (result.customer) {
+              customer = result.customer;
+              customerSite = result.site;
+              console.log('Found via phone, site:', customerSite);
             }
+          } catch (e) {
+            console.log('Phone search failed:', e);
           }
         }
       } else {
