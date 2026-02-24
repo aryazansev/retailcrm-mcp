@@ -96,7 +96,23 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // Search through pages to find order (needed because site is required)
+    // First try without site
+    try {
+      const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&limit=100`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.orders) {
+        const order = data.orders.find((o: any) => o.id === id);
+        if (order) {
+          return { order, site: order.site };
+        }
+      }
+    } catch (e) {
+      console.log('Search without site error:', e);
+    }
+    
+    // Try each site
     const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
     for (const s of sites) {
