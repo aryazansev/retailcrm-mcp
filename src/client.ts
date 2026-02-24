@@ -96,8 +96,21 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // Try filter by id - much faster
-    const sitesToTry = site ? [site] : ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+    // Try without site first (most common case)
+    try {
+      const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&filter[id]=${id}&limit=1`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.orders && data.orders.length > 0) {
+        return { order: data.orders[0], site: data.orders[0].site };
+      }
+    } catch (e) {
+      console.log('Search without site error:', e);
+    }
+    
+    // Try most common sites only
+    const sitesToTry = ['justcouture-ru', 'ashrussia-ru', 'unitednude-ru'];
     
     for (const s of sitesToTry) {
       try {
