@@ -79,7 +79,7 @@ app.all('/webhook/vykup', async (req, res) => {
     
     // Skip orderId lookup - webhook always sends customerId
     
-    // If orderId is provided, get order to find customer details
+    // If orderId is provided, get order first to find customer and phone
     if (orderIdNum) {
       try {
         const orderResult = await client.getOrder(orderIdNum);
@@ -91,6 +91,56 @@ app.all('/webhook/vykup', async (req, res) => {
           } else {
             customerId = Number(cust);
           }
+          customerSite = orderResult.site;
+          
+          // Try to get phone from order
+          if (orderResult.order?.phone) {
+            normalizedPhone = orderResult.order.phone.replace(/\D/g, '');
+            if (!normalizedPhone.startsWith('7')) {
+              normalizedPhone = '7' + normalizedPhone;
+            }
+          }
+          console.log('Got from order: customerId=', customerId, 'site=', customerSite, 'phone=', normalizedPhone);
+        }
+      } catch (e) {
+        console.log('Error getting order:', e);
+      }
+    }
+    
+    // Find customer
+    if (normalizedPhone) {
+      // Use phone search
+      try {
+        const result = await client.getCustomerByPhone(normalizedPhone);
+        customer = result.customer;
+        customerSite = result.site;
+        console.log('Found via phone, site:', customerSite);
+      } catch (e) {
+        console.log('Phone search failed:', e);
+      }
+    } else if (customerId) {
+      // Need to search by customerId - use getCustomerById
+      const sitesToTry = ['justcouture-ru', 'ashrussia-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+      for (const s of sitesToTry) {
+        try {
+          const result = await client.getCustomer(customerId, s);
+          if (result.customer) {
+            customer = result.customer;
+            customerSite = s;
+            console.log('Found via getCustomer, site:', s);
+            break;
+          }
+        } catch (e) {
+          console.log('Site', s, 'failed:', e);
+        }
+      }
+    } else {
+      return res.status(400).json({ error: 'Требуется phone, customerId или orderId' });
+    }
+    
+    if (!customer) {
+      return res.status(404).json({ error: 'Клиент не найден' });
+    }
           customerSite = orderResult.site;
           console.log('Got from order: customerId=', customerId, 'site=', customerSite);
         }
