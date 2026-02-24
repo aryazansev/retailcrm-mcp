@@ -96,18 +96,27 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // Get order directly by ID
-    const url = `${this.baseUrl}/api/v5/orders/${id}?apiKey=${this.apiKey}${site ? '&site=' + site : ''}`;
-    console.log('getOrder URL:', url);
-    const response = await fetch(url);
-    const data = await response.json();
+    // Search through pages to find order (needed because site is required)
+    const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
-    console.log('getOrder response:', JSON.stringify(data));
-    
-    if (!response.ok || !data.order) {
-      throw new Error("Order not found");
+    for (const s of sites) {
+      try {
+        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&site=${s}&limit=100`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.orders) {
+          const order = data.orders.find((o: any) => o.id === id);
+          if (order) {
+            return { order, site: s };
+          }
+        }
+      } catch (e) {
+        console.log('Site', s, 'error:', e);
+      }
     }
-    return { order: data.order, site: data.site };
+    
+    throw new Error("Order not found");
   }
 
   async getOrderByNumber(number: string): Promise<any> {
