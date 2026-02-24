@@ -83,25 +83,40 @@ app.all('/webhook/vykup', async (req, res) => {
       if (customerId) {
         console.log('Getting customer by ID:', customerId);
         
-        // Use filter by id - much faster
-        const sitesToTry = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+        // Try without site first
+        const customersResult = await client.getCustomers({
+          limit: 50,
+          page: 1,
+          filter: { id: customerId }
+        });
         
-        for (const s of sitesToTry) {
-          try {
-            const customersResult = await client.getCustomers({
-              limit: 1,
-              page: 1,
-              filter: { id: customerId }
-            });
-            
-            if (customersResult.customers && customersResult.customers.length > 0) {
-              customer = customersResult.customers[0];
-              customerSite = s;
-              console.log('Found customer with site:', s);
-              break;
+        if (customersResult.customers && customersResult.customers.length > 0) {
+          customer = customersResult.customers[0];
+          customerSite = customer.site;
+          console.log('Found customer, site:', customerSite);
+        }
+        
+        // If not found, try each site
+        if (!customer) {
+          const sitesToTry = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+          
+          for (const s of sitesToTry) {
+            try {
+              const result = await client.getCustomers({
+                limit: 1,
+                page: 1,
+                filter: { id: customerId }
+              });
+              
+              if (result.customers && result.customers.length > 0) {
+                customer = result.customers[0];
+                customerSite = s;
+                console.log('Found customer with site:', s);
+                break;
+              }
+            } catch (e) {
+              console.log('Site', s, 'failed:', e);
             }
-          } catch (e) {
-            console.log('Site', s, 'failed:', e);
           }
         }
       } else {
