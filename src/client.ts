@@ -56,9 +56,9 @@ export class RetailCRMClient {
     limit?: number;
     page?: number;
     filter?: Record<string, any>;
-  } = {}): Promise<any> {
+  } = {}, site?: string): Promise<any> {
     // Build URL manually to handle filter keys correctly
-    const urlStr = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}`;
+    const urlStr = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}${site ? '&site=' + site : ''}`;
     const url = new URL(urlStr);
     
     // Add pagination params
