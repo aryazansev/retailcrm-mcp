@@ -79,63 +79,58 @@ app.all('/webhook/vykup', async (req, res) => {
     
     // Skip orderId lookup - webhook always sends customerId
     
-    try {
-      if (customerId) {
-        console.log('Getting customer by ID:', customerId);
-        
-        // Try searching by externalId - need to search through pages
-        let found = false;
-        
-        // Try without site first - search pages
-        for (let page = 1; page <= 50 && !found; page++) {
-          try {
-            const result = await client.getCustomers({
-              limit: 20,
-              page: page,
-              filter: { id: customerId }
-            });
-            
-            if (result.customers && result.customers.length > 0) {
-              for (const c of result.customers) {
-                if (c.id === customerId) {
-                  customer = c;
-                  customerSite = c.site;
-                  console.log('Found customer, site:', customerSite);
-                  found = true;
-                  break;
-                }
-              }
-            }
-            if (result.customers.length < 20) break;
-          } catch (e) {
-            console.log('Page', page, 'error:', e);
+    // If orderId is provided, get order to find customer details
+    if (orderIdNum) {
+      try {
+        const orderResult = await client.getOrder(orderIdNum);
+        if (orderResult.order?.customer) {
+          const cust = orderResult.order.customer;
+          if (typeof cust === 'object') {
+            customer = cust;
+            customerId = cust.id;
+          } else {
+            customerId = Number(cust);
           }
+          customerSite = orderResult.site;
+          console.log('Got from order: customerId=', customerId, 'site=', customerSite);
         }
-        
-        // Try by phone as fallback
-        if (!customer && normalizedPhone) {
-          try {
-            const result = await client.getCustomerByPhone(normalizedPhone);
-            if (result.customer) {
-              customer = result.customer;
-              customerSite = result.site;
-              console.log('Found via phone, site:', customerSite);
-            }
-          } catch (e) {
-            console.log('Phone search failed:', e);
-          }
-        }
-      } else {
-        console.log('Getting customer by phone:', normalizedPhone);
-        const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
-        customer = customerResult.customer;
-        customerSite = customerResult.site;
-        const customerExternalId = customerResult.externalId;
-        console.log('Customer externalId from search:', customerExternalId);
+      } catch (e) {
+        console.log('Error getting order:', e);
       }
-    } catch (err) {
-      console.log('Error finding customer:', err);
-      return res.status(404).json({ error: 'Клиент не найден: ' + err });
+    }
+    
+    // If we have customerId, search for customer
+    if (customerId) {
+      // Use phone search if we have phone, otherwise search
+      if (normalizedPhone) {
+        try {
+          const result = await client.getCustomerByPhone(normalizedPhone);
+          customer = result.customer;
+          customerSite = result.site;
+          console.log('Found via phone, site:', customerSite);
+        } catch (e) {
+    // If we have customerId, search for customer
+    if (customerId) {
+      // Use phone search if we have phone
+      if (normalizedPhone) {
+        try {
+          const result = await client.getCustomerByPhone(normalizedPhone);
+          customer = result.customer;
+          customerSite = result.site;
+          console.log('Found via phone, site:', customerSite);
+        } catch (e) {
+          console.log('Phone search failed:', e);
+        }
+      }
+    } else if (normalizedPhone) {
+      // Only use phone if no customerId
+      console.log('Getting customer by phone:', normalizedPhone);
+      const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
+      customer = customerResult.customer;
+      customerSite = customerResult.site;
+      console.log('Customer site from search:', customerSite);
+    } else {
+      return res.status(400).json({ error: 'Требуется phone или customerId' });
     }
     
     if (!customer) {
