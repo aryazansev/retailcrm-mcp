@@ -104,13 +104,6 @@ app.all('/webhook/vykup', async (req, res) => {
             console.log('Site', s, 'failed:', e);
           }
         }
-                break;
-              }
-            } catch (e) {
-              console.log('Site', s, 'failed:', e);
-            }
-          }
-        }
       } else {
         console.log('Getting customer by phone:', normalizedPhone);
         const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
