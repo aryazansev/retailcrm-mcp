@@ -96,23 +96,25 @@ export class RetailCRMClient {
   }
 
   async getOrder(id: number, site?: string): Promise<any> {
-    // First try without site
-    try {
-      const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&limit=100`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data.orders) {
+    // First try without site - check multiple pages
+    for (let page = 1; page <= 10; page++) {
+      try {
+        const url = `${this.baseUrl}/api/v5/orders?apiKey=${this.apiKey}&limit=100&page=${page}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.orders || data.orders.length === 0) break;
+        
         const order = data.orders.find((o: any) => o.id === id);
         if (order) {
           return { order, site: order.site };
         }
+      } catch (e) {
+        console.log('Page', page, 'error:', e);
       }
-    } catch (e) {
-      console.log('Search without site error:', e);
     }
     
-    // Try each site
+    // Try each site if not found
     const sites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
     
     for (const s of sites) {
