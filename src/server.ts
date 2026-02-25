@@ -175,45 +175,45 @@ app.all('/webhook/vykup', async (req, res) => {
     let canceledOrders = 0;
     let vozvratOrders = 0;
     
-    // Get all orders using filter[customerId]
-    let totalOrdersFound = 0;
+    // Get all orders - search on each site without filter (filter doesn't work)
+    const sitesToSearch = customerSite ? [customerSite] : ['ashrussia-ru', 'justcouture-ru'];
     const limit = 100;
     
-    console.log('Fetching orders with customerId:', customerIdCRM);
+    console.log('Fetching orders for customerId:', customerIdCRM);
     
-    while (true) {
-      console.log('Fetching page', page);
-      const ordersResult = await client.getOrders({
-        limit,
-        page,
-        filter: {
-          customerId: customerIdCRM
+    for (const searchSite of sitesToSearch) {
+      let page = 1;
+      while (true) {
+        try {
+          const ordersResult = await client.getOrders({
+            limit,
+            page
+          }, searchSite);
+          
+          if (!ordersResult.orders || ordersResult.orders.length === 0) break;
+          
+          for (const order of ordersResult.orders) {
+            // Check if this order belongs to our customer
+            const orderCustomerId = typeof order.customer === 'object' ? order.customer.id : order.customer;
+            if (orderCustomerId == customerIdCRM) {
+              totalOrdersFound++;
+              if (order.status === 'completed') {
+                completedOrders++;
+              } else if (order.status === 'cancel-other') {
+                canceledOrders++;
+              } else if (order.status === 'vozvrat-im') {
+                vozvratOrders++;
+              }
+            }
+          }
+          
+          if (ordersResult.orders.length < limit) break;
+          page++;
+        } catch (e) {
+          console.log('Error fetching orders from', searchSite, ':', e);
+          break;
         }
-      });
-      
-      console.log('Got', ordersResult.orders?.length || 0, 'orders');
-      
-      if (!ordersResult.orders || ordersResult.orders.length === 0) {
-        break;
       }
-      
-      for (const order of ordersResult.orders) {
-        totalOrdersFound++;
-        if (order.status === 'completed') {
-          completedOrders++;
-        } else if (order.status === 'cancel-other') {
-          canceledOrders++;
-        } else if (order.status === 'vozvrat-im') {
-          vozvratOrders++;
-        }
-      }
-      
-      console.log('Page', page, '- found:', ordersResult.orders.length, 'orders');
-      
-      if (ordersResult.orders.length < limit) {
-        break;
-      }
-      page++;
     }
     
     console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders, 'Total:', totalOrdersFound);
