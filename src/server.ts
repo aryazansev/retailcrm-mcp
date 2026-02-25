@@ -174,9 +174,8 @@ app.all('/webhook/vykup', async (req, res) => {
         }
       }
     }
-    }
     
-    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders, 'Total:', totalOrdersFound);
+    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders);
     
     // Formula: vykup = ((completed - vozvrat) / (completed + cancel-other + vozvrat)) × 100
     const totalRelevant = completedOrders + canceledOrders + vozvratOrders;
