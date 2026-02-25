@@ -77,7 +77,10 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // Skip orderId - use phone instead (order lookup is too slow)
+    // Skip orderId and customerId - use phone only
+    if (!normalizedPhone) {
+      return res.status(400).json({ error: 'Требуется phone' });
+    }
     
     try {
       if (customerId) {
