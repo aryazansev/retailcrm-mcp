@@ -77,30 +77,87 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // Skip orderId - use phone instead
-    if (normalizedPhone) {
-      console.log('Getting customer by phone:', normalizedPhone);
-      const customerResult = await client.getCustomerByPhone(normalizedPhone);
-      customer = customerResult.customer;
-      customerSite = customerResult.site;
-      console.log('Found via phone, site:', customerSite);
-    } else if (customerId) {
-      // Fallback: try by customer id using getCustomer
-      console.log('Getting customer by ID:', customerId);
-      const sitesToTry = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru'];
-      for (const s of sitesToTry) {
-        try {
-          const customerResult = await client.getCustomer(customerId, s);
-          if (customerResult.customer) {
-            customer = customerResult.customer;
-            customerSite = s;
-            console.log('Found via getCustomer, site:', s);
+    // If orderId provided but no customerId, get order to find customer
+    if (orderIdNum && !customerId) {
+      console.log('Getting order by ID:', orderIdNum);
+      try {
+        const orderResult = await client.getOrder(orderIdNum);
+        if (orderResult.order?.customer) {
+          if (typeof orderResult.order.customer === 'object') {
+            customer = orderResult.order.customer;
+            customerId = customer.id;
+          } else {
+            customerId = Number(orderResult.order.customer);
+          }
+          customerSite = orderResult.site;
+          console.log('Got customerId from order:', customerId, 'site:', customerSite);
+        }
+      } catch (e) {
+        console.log('Error getting order:', e);
+      }
+    }
+    
+    try {
+      if (customerId) {
+        console.log('Getting customer by ID:', customerId);
+        
+        // Search through customer pages to find the customer
+        let foundCustomer = null;
+        let foundSite = null;
+        
+        for (let searchPage = 1; searchPage <= 200; searchPage++) {
+          const customersResult = await client.getCustomers({
+            limit: 50,
+            page: searchPage
+          });
+          
+          if (!customersResult.customers || customersResult.customers.length === 0) {
             break;
           }
-        } catch (e) {
-          console.log('Site', s, 'failed:', e);
+          
+          for (const c of customersResult.customers) {
+            if (c.id === customerId) {
+              foundCustomer = c;
+              foundSite = c.site;
+              console.log('Found customer via search, site:', foundSite);
+              break;
+            }
+          }
+          
+          if (foundCustomer) break;
         }
+        
+        if (foundCustomer) {
+          customer = foundCustomer;
+          customerSite = foundSite;
+        } else {
+          // Fallback: try getCustomer with all sites
+          const allSites = ['ashrussia-ru', 'justcouture-ru', 'unitednude-ru', 'afiapark', 'atrium', 'afimol', 'vnukovo', 'tsvetnoi', 'metropolis', 'novaia-riga', 'paveletskaia-plaza'];
+          for (const s of allSites) {
+            try {
+              const customerResult = await client.getCustomer(customerId, s);
+              if (customerResult.customer) {
+                customer = customerResult.customer;
+                customerSite = s;
+                console.log('Found customer with site:', s);
+                break;
+              }
+            } catch (e) {
+              console.log('Site', s, 'failed:', e);
+            }
+          }
+        }
+      } else {
+        console.log('Getting customer by phone:', normalizedPhone);
+        const customerResult = await client.getCustomerByPhone(normalizedPhone || '');
+        customer = customerResult.customer;
+        customerSite = customerResult.site;
+        const customerExternalId = customerResult.externalId;
+        console.log('Customer externalId from search:', customerExternalId);
       }
+    } catch (err) {
+      console.log('Error finding customer:', err);
+      return res.status(404).json({ error: 'Клиент не найден: ' + err });
     }
     
     if (!customer) {
@@ -118,44 +175,48 @@ app.all('/webhook/vykup', async (req, res) => {
     let canceledOrders = 0;
     let vozvratOrders = 0;
     
-    // Get all orders using filter with site
-    const sitesToSearch = customerSite ? [customerSite] : ['ashrussia-ru', 'justcouture-ru'];
+    // Get all orders using filter[customerId]
+    let totalOrdersFound = 0;
     const limit = 100;
     
-    console.log('Fetching orders for customerId:', customerIdCRM, 'on sites:', sitesToSearch);
+    console.log('Fetching orders with customerId:', customerIdCRM);
     
-    for (const searchSite of sitesToSearch) {
-      let ordersPage = 1;
-      while (true) {
-        try {
-          const ordersResult = await client.getOrders({
-            limit,
-            page: ordersPage,
-            filter: { customer: String(customerIdCRM) }
-          }, searchSite);
-          
-          if (!ordersResult.orders || ordersResult.orders.length === 0) break;
-          
-          for (const order of ordersResult.orders) {
-            if (order.status === 'completed') {
-              completedOrders++;
-            } else if (order.status === 'cancel-other') {
-              canceledOrders++;
-            } else if (order.status === 'vozvrat-im') {
-              vozvratOrders++;
-            }
-          }
-          
-          if (ordersResult.orders.length < limit) break;
-          ordersPage++;
-        } catch (e) {
-          console.log('Error fetching orders from', searchSite, ':', e);
-          break;
+    while (true) {
+      console.log('Fetching page', page);
+      const ordersResult = await client.getOrders({
+        limit,
+        page,
+        filter: {
+          customerId: customerIdCRM
+        }
+      });
+      
+      console.log('Got', ordersResult.orders?.length || 0, 'orders');
+      
+      if (!ordersResult.orders || ordersResult.orders.length === 0) {
+        break;
+      }
+      
+      for (const order of ordersResult.orders) {
+        totalOrdersFound++;
+        if (order.status === 'completed') {
+          completedOrders++;
+        } else if (order.status === 'cancel-other') {
+          canceledOrders++;
+        } else if (order.status === 'vozvrat-im') {
+          vozvratOrders++;
         }
       }
+      
+      console.log('Page', page, '- found:', ordersResult.orders.length, 'orders');
+      
+      if (ordersResult.orders.length < limit) {
+        break;
+      }
+      page++;
     }
     
-    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders);
+    console.log('Completed:', completedOrders, 'Canceled:', canceledOrders, 'Vozvrat:', vozvratOrders, 'Total:', totalOrdersFound);
     
     // Formula: vykup = ((completed - vozvrat) / (completed + cancel-other + vozvrat)) × 100
     const totalRelevant = completedOrders + canceledOrders + vozvratOrders;
