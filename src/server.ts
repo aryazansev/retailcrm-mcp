@@ -77,22 +77,7 @@ app.all('/webhook/vykup', async (req, res) => {
     let customer;
     let customerSite = null;
     
-    // If orderId provided, try to get phone from order (optional)
-    if (orderIdNum && !normalizedPhone) {
-      try {
-        const orderResult = await client.getOrder(orderIdNum);
-        if (orderResult.order?.phone) {
-          normalizedPhone = orderResult.order.phone.replace(/\D/g, '');
-          if (!normalizedPhone.startsWith('7')) {
-            normalizedPhone = '7' + normalizedPhone;
-          }
-        }
-      } catch (e) {
-        console.log('Error getting order:', e);
-      }
-    }
-    
-    // Always prefer phone - it's fast
+    // Skip orderId - use phone instead
     if (normalizedPhone) {
       console.log('Getting customer by phone:', normalizedPhone);
       const customerResult = await client.getCustomerByPhone(normalizedPhone);
